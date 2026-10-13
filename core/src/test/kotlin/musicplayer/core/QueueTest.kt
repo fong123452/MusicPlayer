@@ -572,7 +572,7 @@ class QueueTest {
         engine.complete()
 
         assertEquals(1L, queue.queue.value.current?.id)
-        assertEquals(2, engine.loaded.size)
+        assertEquals(listOf("content://media/audio/1", "content://media/audio/1"), engine.loaded)
         assertTrue(queue.isPlaying.value)
 
         queue.next()
@@ -615,5 +615,44 @@ class QueueTest {
         repeat(3) { engine.fail() }
 
         assertFalse(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `a reorder made while not shuffled survives a shuffle round trip`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+        queue.move(from = 2, to = 0)
+
+        queue.setShuffle(true)
+        queue.setShuffle(false)
+
+        assertEquals(listOf(3L, 1L, 2L), ids(queue))
+    }
+
+    @Test
+    fun `a reorder made while shuffled does not change the order shuffle off restores`() = runTest {
+        val queue = queueOf()
+        queue.replace(ten, startIndex = 0)
+        queue.setShuffle(true)
+
+        queue.move(from = 5, to = 1)
+        queue.setShuffle(false)
+
+        assertEquals((1L..10L).toList(), ids(queue))
+    }
+
+    @Test
+    fun `failures the user skips past do not add up to a stop`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+        queue.cycleRepeat()
+
+        engine.fail()
+        queue.next()
+        engine.fail()
+        queue.next()
+        engine.fail()
+
+        assertTrue(queue.isPlaying.value)
     }
 }

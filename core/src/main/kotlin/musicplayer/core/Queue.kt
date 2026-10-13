@@ -125,6 +125,11 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private v
 
     /** Moves to the next Track; on the last Track it wraps to the first under Repeat All, otherwise playback stops. */
     fun next() {
+        failures = 0
+        advance()
+    }
+
+    private fun advance() {
         val s = state.value
         val target = when {
             s.currentIndex + 1 <= s.tracks.lastIndex -> s.currentIndex + 1
@@ -137,11 +142,12 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private v
 
     private fun completed() {
         failures = 0
-        if (repeatState.value == RepeatMode.One) loadCurrentAndPlay() else next()
+        if (repeatState.value == RepeatMode.One) loadCurrentAndPlay() else advance()
     }
 
     /** Restarts the current Track once it has played past [RESTART_THRESHOLD_MS], otherwise moves back. */
     fun previous(positionMs: Long) {
+        failures = 0
         val s = state.value
         if (positionMs > RESTART_THRESHOLD_MS || s.currentIndex <= 0) {
             engine.seekTo(0)
@@ -176,6 +182,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private v
         val s = state.value
         if (from !in s.tracks.indices || to !in s.tracks.indices || from == to) return
         entries = entries.toMutableList().apply { add(to, removeAt(from)) }
+        if (!shuffleState.value) original = entries // a reorder is the new given order; shuffled moves stay out of it
         val current = when {
             s.currentIndex == from -> to
             from < s.currentIndex && to >= s.currentIndex -> s.currentIndex - 1
@@ -192,6 +199,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private v
     fun remove(index: Int) {
         val s = state.value
         if (index !in s.tracks.indices) return
+        failures = 0
         val removed = entries[index]
         entries = entries.toMutableList().apply { removeAt(index) }
         original = original - removed
@@ -227,7 +235,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private v
         skippedEvents.tryEmit(failed.title)
         // Under Repeat All, a Queue where every Track fails would otherwise skip around it forever.
         if (++failures >= entries.size) return stopPlayback()
-        next()
+        advance()
     }
 
     private fun currentEntry(): Entry? = entries.getOrNull(state.value.currentIndex)
