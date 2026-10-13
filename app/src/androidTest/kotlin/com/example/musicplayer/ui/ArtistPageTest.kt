@@ -3,7 +3,10 @@ package com.example.musicplayer.ui
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import com.example.musicplayer.MainActivity
@@ -20,7 +23,7 @@ import org.junit.Test
 import javax.inject.Inject
 
 @HiltAndroidTest
-class ArtistsTabTest {
+class ArtistPageTest {
     @get:Rule(order = 0) val hilt = HiltAndroidRule(this)
     @get:Rule(order = 1) val compose = createEmptyComposeRule()
 
@@ -45,19 +48,19 @@ class ArtistsTabTest {
     private fun openArtist(name: String) {
         scenario = ActivityScenario.launch(MainActivity::class.java)
         compose.waitForText("Own Song")
-        compose.onNodeWithText("Artists").performClick()
-        compose.waitForText(name)
+        compose.onNodeWithContentDescription(SEARCH_DESCRIPTION).performClick()
+        compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput(name)
+        compose.waitForText(ARTISTS_HEADER)
         compose.onNodeWithText(name).performClick()
     }
 
     @Test
-    fun the_artists_tab_lists_seeded_artists_and_tapping_one_opens_their_albums_and_tracks() {
+    fun tapping_an_artist_search_result_opens_their_albums_and_tracks() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
         compose.waitForText("Own Song")
-        compose.onNodeWithText("Artists").performClick()
-        compose.waitForText("Alice")
-        compose.onNodeWithText("Bob").assertExists()
-        compose.onNodeWithText("Various Artists").assertExists()
+        compose.onNodeWithContentDescription(SEARCH_DESCRIPTION).performClick()
+        compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("Alice")
+        compose.waitForText(ARTISTS_HEADER)
 
         compose.onNodeWithText("Alice").performClick()
 

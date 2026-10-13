@@ -1,14 +1,11 @@
 package com.example.musicplayer.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,36 +24,8 @@ import androidx.compose.ui.unit.dp
 import musicplayer.core.Album
 import musicplayer.core.Track
 
-const val ALBUMS_LIST_TAG = "albums_list"
 const val ALBUM_TRACKS_TAG = "album_tracks"
 const val PLAY_ALBUM_LABEL = "Play album"
-
-@Composable
-fun AlbumsScreen(
-    albums: List<Album>,
-    onAlbumClick: (Album) -> Unit,
-    onAddToPlaylist: (Album) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(modifier.fillMaxSize().testTag(ALBUMS_LIST_TAG)) {
-        items(albums, key = { it.key }) { album ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onAlbumClick(album) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AlbumArt(album.albumId, 56.dp, ROW_ART_PLACEHOLDER_TAG)
-                Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text(album.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                    Text(album.albumArtist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                }
-                AlbumMenuButton { onAddToPlaylist(album) }
-            }
-        }
-    }
-}
 
 @Composable
 fun AlbumDetailScreen(

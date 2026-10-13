@@ -1,6 +1,8 @@
 package com.example.musicplayer.ui
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -16,6 +18,7 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import musicplayer.core.FakeTrackSource
 import musicplayer.core.rawTrack
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -77,11 +80,23 @@ class TracksTabTest {
     }
 
     @Test
-    fun home_has_tabs_for_tracks_albums_artists_and_playlists() {
+    fun home_has_only_songs_and_playlists_tabs() {
         launch()
 
-        listOf("Songs", "Albums", "Artists", "Playlists").forEach {
-            compose.onNodeWithText(it).assertExists()
-        }
+        compose.onAllNodes(isSelectable()).assertCountEquals(2)
+        compose.onNodeWithText("Songs").assertExists()
+        compose.onNodeWithText("Playlists").assertExists()
+        compose.onNodeWithText("Albums").assertDoesNotExist()
+        compose.onNodeWithText("Artists").assertDoesNotExist()
+    }
+
+    @Test
+    fun tab_labels_fit_on_one_line() {
+        launch()
+
+        // Two single-line labels share a height; a wrapped one would be taller than the other.
+        val songs = compose.onNodeWithText("Songs").fetchSemanticsNode().size.height
+        val playlists = compose.onNodeWithText("Playlists").fetchSemanticsNode().size.height
+        assertEquals(songs, playlists)
     }
 }

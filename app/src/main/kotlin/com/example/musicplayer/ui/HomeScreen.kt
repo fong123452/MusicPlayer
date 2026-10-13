@@ -34,8 +34,6 @@ import musicplayer.core.Track
 
 enum class HomeTab(val label: String) {
     Tracks("Songs"),
-    Albums("Albums"),
-    Artists("Artists"),
     Playlists("Playlists"),
 }
 
@@ -198,12 +196,6 @@ fun HomeScreen(
                         onAddToQueue = player::addToQueue,
                         onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     )
-                    HomeTab.Albums -> AlbumsScreen(
-                        snapshot.albums,
-                        onAlbumClick = { openAlbumId = it.key },
-                        onAddToPlaylist = { addToPlaylist(it.tracks) },
-                    )
-                    HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
                     HomeTab.Playlists -> PlaylistsScreen(
                         playlists = playlists,
                         onOpen = { openPlaylistId = it.id },
