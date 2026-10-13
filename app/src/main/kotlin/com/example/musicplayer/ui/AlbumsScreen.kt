@@ -93,7 +93,7 @@ fun AlbumDetailScreen(
                     onClick = { onPlay(index) },
                     onPlayNext = { onPlayNext(track) },
                     onAddToQueue = { onAddToQueue(track) },
-                        onAddToPlaylist = { onAddToPlaylist(track) },
+                    onAddToPlaylist = { onAddToPlaylist(track) },
                 )
             }
         }

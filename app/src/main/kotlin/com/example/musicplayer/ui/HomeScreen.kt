@@ -16,7 +16,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -51,8 +50,14 @@ fun HomeScreen(
     val isPlaying by player.isPlaying.collectAsState()
     val shuffle by player.shuffle.collectAsState()
     val repeat by player.repeat.collectAsState()
-    val playlists by playlistsViewModel.all.collectAsState()
-    var pendingAdd by remember { mutableStateOf<List<Track>?>(null) }
+    val playlists by playlistsViewModel.playlists.collectAsState()
+    // Only ids are saved, so the dialog survives rotation; the Tracks are looked up again in the current Library.
+    var pendingIds by rememberSaveable { mutableStateOf<ArrayList<Long>?>(null) }
+    val pendingAdd = pendingIds?.let { ids ->
+        val byId = snapshot.tracks.associateBy { it.id }
+        ids.mapNotNull(byId::get)
+    }
+    fun addToPlaylist(tracks: List<Track>) { pendingIds = ArrayList(tracks.map { it.id }) }
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
@@ -67,7 +72,6 @@ fun HomeScreen(
     // With nothing current, Now Playing is hidden; clear the flag so it does not reappear when a Track is queued later.
     LaunchedEffect(queueState.current == null) { if (queueState.current == null) showNowPlaying = false }
     val snackbarHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     LaunchedEffect(player) {
         // Each message gets its own coroutine, so a new failure replaces the one on screen instead of queueing behind it.
         player.skipped.collect { title ->
@@ -75,10 +79,11 @@ fun HomeScreen(
             launch { snackbarHost.showSnackbar("Couldn't play $title, skipped") }
         }
     }
-
-    fun confirmAdd(message: String) {
-        snackbarHost.currentSnackbarData?.dismiss()
-        scope.launch { snackbarHost.showSnackbar(message) }
+    LaunchedEffect(playlistsViewModel) {
+        playlistsViewModel.messages.collect { message ->
+            snackbarHost.currentSnackbarData?.dismiss()
+            launch { snackbarHost.showSnackbar(message) }
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -93,8 +98,8 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
-                    onAddToPlaylist = { pendingAdd = listOf(it) },
-                    onAddAlbumToPlaylist = { pendingAdd = openAlbum.tracks },
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
+                    onAddAlbumToPlaylist = { addToPlaylist(openAlbum.tracks) },
                     onClose = { openAlbumId = null },
                 )
             } else if (openArtist != null) {
@@ -106,9 +111,9 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
-                    onAddToPlaylist = { pendingAdd = listOf(it) },
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     onAlbumClick = { openAlbumId = it.key },
-                    onAddAlbumToPlaylist = { pendingAdd = it.tracks },
+                    onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onClose = { openArtistKey = null },
                 )
             } else if (showSearch) {
@@ -122,9 +127,9 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
-                    onAddToPlaylist = { pendingAdd = listOf(it) },
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     onAlbumClick = { openAlbumId = it.key },
-                    onAddAlbumToPlaylist = { pendingAdd = it.tracks },
+                    onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onArtistClick = { openArtistKey = it.key },
                     onClose = { showSearch = false; searchQuery = "" },
                 )
@@ -150,19 +155,18 @@ fun HomeScreen(
                         },
                         onPlayNext = player::playNext,
                         onAddToQueue = player::addToQueue,
-                    onAddToPlaylist = { pendingAdd = listOf(it) },
+                        onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     )
                     HomeTab.Albums -> AlbumsScreen(
                         snapshot.albums,
                         onAlbumClick = { openAlbumId = it.key },
-                        onAddToPlaylist = { pendingAdd = it.tracks },
+                        onAddToPlaylist = { addToPlaylist(it.tracks) },
                     )
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
                     HomeTab.Playlists -> PlaylistsScreen(
                         playlists = playlists,
                         onPlay = { playlist ->
-                            playlistsViewModel.play(playlist)
-                            onTrackPlayed()
+                            if (playlistsViewModel.play(playlist)) onTrackPlayed()
                         },
                         onCreate = playlistsViewModel::create,
                     )
@@ -193,14 +197,14 @@ fun HomeScreen(
             AddToPlaylistDialog(
                 playlists = playlists,
                 onPick = { playlist ->
-                    playlistsViewModel.add(playlist, tracks, ::confirmAdd)
-                    pendingAdd = null
+                    playlistsViewModel.add(playlist, tracks)
+                    pendingIds = null
                 },
                 onCreate = { name ->
-                    playlistsViewModel.createAndAdd(name, tracks, ::confirmAdd)
-                    pendingAdd = null
+                    playlistsViewModel.createAndAdd(name, tracks)
+                    pendingIds = null
                 },
-                onDismiss = { pendingAdd = null },
+                onDismiss = { pendingIds = null },
             )
         }
         SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter))

@@ -3,6 +3,8 @@ package com.example.musicplayer.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,29 +18,35 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlaylistsViewModel @Inject constructor(
-    private val playlists: Playlists,
+    private val core: Playlists,
     private val queue: Queue,
 ) : ViewModel() {
-    val all: StateFlow<List<Playlist>> =
-        playlists.playlists.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val playlists: StateFlow<List<Playlist>> =
+        core.playlists.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val messageEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
+
+    /** Short confirmations of adds, one per add, even when the screen was recreated while it ran. */
+    val messages: Flow<String> = messageEvents
 
     fun create(name: String) {
-        viewModelScope.launch { playlists.create(name.trim()) }
+        viewModelScope.launch { core.create(name) }
     }
 
-    /** Creates a Playlist named [name] and adds [tracks] to it. [onResult] gets the message to show. */
-    fun createAndAdd(name: String, tracks: List<Track>, onResult: (String) -> Unit) {
+    /** Creates a Playlist named [name] and adds [tracks] to it. */
+    fun createAndAdd(name: String, tracks: List<Track>) {
         viewModelScope.launch {
-            val id = playlists.create(name.trim())
-            onResult(playlists.add(id, tracks).describe(name.trim()))
+            val id = core.create(name)
+            messageEvents.emit(core.add(id, tracks).describe(name.trim()))
         }
     }
 
-    fun add(playlist: Playlist, tracks: List<Track>, onResult: (String) -> Unit) {
-        viewModelScope.launch { onResult(playlists.add(playlist.id, tracks).describe(playlist.name)) }
+    fun add(playlist: Playlist, tracks: List<Track>) {
+        viewModelScope.launch { messageEvents.emit(core.add(playlist.id, tracks).describe(playlist.name)) }
     }
 
-    fun play(playlist: Playlist) = playlists.play(playlist, queue)
+    /** Returns false, playing nothing, when the Playlist has no Tracks. */
+    fun play(playlist: Playlist): Boolean = core.play(playlist, queue)
 }
 
 /** The short confirmation shown after adding Tracks to the Playlist called [playlistName]. */

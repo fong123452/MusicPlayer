@@ -1,7 +1,9 @@
 package musicplayer.core
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 
 /** A Playlist as the store keeps it: Tracks are only MediaStore ids, in Playlist order. */
 data class StoredPlaylist(val id: Long, val name: String, val trackIds: List<Long>)
@@ -27,9 +29,13 @@ class Playlists(private val store: PlaylistStore, private val library: Library) 
     val playlists: Flow<List<Playlist>> = combine(store.playlists, library.snapshot) { stored, snapshot ->
         val byId = snapshot.tracks.associateBy { it.id }
         stored.map { Playlist(it.id, it.name, it.trackIds.mapNotNull(byId::get)) }
-    }
+    }.flowOn(Dispatchers.Default)
 
-    suspend fun create(name: String): Long = store.create(name)
+    /** Creates a Playlist named [name] without surrounding spaces. */
+    suspend fun create(name: String): Long {
+        require(name.isNotBlank()) { "A Playlist needs a name" }
+        return store.create(name.trim())
+    }
 
     /** Adds the Tracks that are not yet in the Playlist, in order, and reports which were already there. */
     suspend fun add(playlistId: Long, tracks: List<Track>): AddResult {
@@ -38,10 +44,10 @@ class Playlists(private val store: PlaylistStore, private val library: Library) 
         return AddResult(added, alreadyThere)
     }
 
-    suspend fun addAlbum(playlistId: Long, album: Album): AddResult = add(playlistId, album.tracks)
-
-    /** Replaces the Queue with a copy of the Playlist's Tracks. */
-    fun play(playlist: Playlist, queue: Queue) {
-        if (playlist.tracks.isNotEmpty()) queue.replace(playlist.tracks, 0)
+    /** Replaces the Queue with a copy of the Playlist's Tracks. Returns false, leaving the Queue alone, when it has none. */
+    fun play(playlist: Playlist, queue: Queue): Boolean {
+        if (playlist.tracks.isEmpty()) return false
+        queue.replace(playlist.tracks, 0)
+        return true
     }
 }
