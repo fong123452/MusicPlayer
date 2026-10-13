@@ -109,16 +109,18 @@ private fun SoundSection(
 ) {
     Text(SOUND_LABEL, Modifier.padding(top = 16.dp), style = MaterialTheme.typography.titleMedium)
     val presets = support.presets
-    if (presets == null) {
+    if (presets.isNullOrEmpty()) {
         Text(EQUALIZER_UNSUPPORTED, Modifier.padding(vertical = 8.dp), style = MaterialTheme.typography.bodyMedium)
     } else {
         Text("Equalizer", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodyMedium)
+        // A saved preset the device no longer offers is played as Off, so it shows as Off.
+        val chosen = sound.preset?.takeIf { it in presets }
         (listOf<String?>(null) + presets).forEach { preset ->
             Row(
                 Modifier.fillMaxWidth().clickable { onPresetChange(preset) },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = sound.preset == preset, onClick = { onPresetChange(preset) })
+                RadioButton(selected = chosen == preset, onClick = { onPresetChange(preset) })
                 Text(preset ?: EQ_OFF_LABEL)
             }
         }
