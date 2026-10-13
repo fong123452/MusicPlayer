@@ -6,7 +6,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class WhenConnectedTest {
-    private val direct = java.util.concurrent.Executor { it.run() }
+    // Guava swallows exceptions thrown by listeners, so record them the way a main-thread crash would surface.
+    private val crashes = mutableListOf<Throwable>()
+    private val direct = java.util.concurrent.Executor {
+        try { it.run() } catch (t: Throwable) { crashes += t }
+    }
 
     @Test
     fun `the command runs with the controller once connected`() {
@@ -28,6 +32,7 @@ class WhenConnectedTest {
         future.setException(IllegalStateException("service unavailable"))
 
         assertEquals(emptyList(), seen)
+        assertEquals(emptyList(), crashes)
     }
 
     @Test
@@ -39,5 +44,6 @@ class WhenConnectedTest {
         future.cancel(false)
 
         assertEquals(emptyList(), seen)
+        assertEquals(emptyList(), crashes)
     }
 }
