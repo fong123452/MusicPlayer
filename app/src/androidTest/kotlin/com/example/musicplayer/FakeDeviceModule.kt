@@ -1,14 +1,17 @@
 package com.example.musicplayer
 
 import com.example.musicplayer.di.DeviceModule
+import com.example.musicplayer.di.StorageModule
 import com.example.musicplayer.permission.AudioPermission
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import musicplayer.core.FakePlaybackEngine
+import musicplayer.core.FakePlaylistStore
 import musicplayer.core.FakeTrackSource
 import musicplayer.core.PlaybackEngine
+import musicplayer.core.PlaylistStore
 import musicplayer.core.TrackSource
 import javax.inject.Singleton
 
@@ -20,7 +23,7 @@ class FakeAudioPermission : AudioPermission {
 
 /** Swaps the device adapters for the fakes from :core's test fixtures. */
 @Module
-@TestInstallIn(components = [SingletonComponent::class], replaces = [DeviceModule::class])
+@TestInstallIn(components = [SingletonComponent::class], replaces = [DeviceModule::class, StorageModule::class])
 object FakeDeviceModule {
     @Provides
     @Singleton
@@ -42,4 +45,8 @@ object FakeDeviceModule {
 
     @Provides
     fun playbackEngine(fake: FakePlaybackEngine): PlaybackEngine = fake
+
+    @Provides
+    @Singleton
+    fun playlistStore(): PlaylistStore = FakePlaylistStore()
 }

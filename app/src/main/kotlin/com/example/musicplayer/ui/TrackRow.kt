@@ -33,6 +33,7 @@ fun TrackRow(
     onClick: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -58,6 +59,10 @@ fun TrackRow(
                 DropdownMenuItem(
                     text = { Text(ADD_TO_QUEUE_LABEL) },
                     onClick = { menuOpen = false; onAddToQueue() },
+                )
+                DropdownMenuItem(
+                    text = { Text(ADD_TO_PLAYLIST_LABEL) },
+                    onClick = { menuOpen = false; onAddToPlaylist() },
                 )
             }
         }

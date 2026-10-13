@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,8 @@ fun AlbumDetailScreen(
     onPlay: (startIndex: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
+    onAddAlbumToPlaylist: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,6 +77,7 @@ fun AlbumDetailScreen(
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Text(PLAY_ALBUM_LABEL)
                 }
+                TextButton(onClick = onAddAlbumToPlaylist) { Text(ADD_TO_PLAYLIST_LABEL) }
             }
         }
         LazyColumn(Modifier.fillMaxSize().testTag(ALBUM_TRACKS_TAG)) {
@@ -83,6 +87,7 @@ fun AlbumDetailScreen(
                     onClick = { onPlay(index) },
                     onPlayNext = { onPlayNext(track) },
                     onAddToQueue = { onAddToQueue(track) },
+                        onAddToPlaylist = { onAddToPlaylist(track) },
                 )
             }
         }

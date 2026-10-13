@@ -58,6 +58,7 @@ fun ArtistDetailScreen(
     onPlay: (startIndex: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -100,6 +101,7 @@ fun ArtistDetailScreen(
                         onClick = { onPlay(index) },
                         onPlayNext = { onPlayNext(track) },
                         onAddToQueue = { onAddToQueue(track) },
+                        onAddToPlaylist = { onAddToPlaylist(track) },
                     )
                 }
             }

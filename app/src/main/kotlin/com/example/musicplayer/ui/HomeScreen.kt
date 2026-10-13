@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import musicplayer.core.Track
 
 enum class HomeTab(val label: String) {
     Tracks("Songs"),
@@ -40,6 +42,7 @@ enum class HomeTab(val label: String) {
 fun HomeScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     player: PlayerViewModel = hiltViewModel(),
+    playlistsViewModel: PlaylistsViewModel = hiltViewModel(),
     onTrackPlayed: () -> Unit = {},
 ) {
     val snapshot by viewModel.snapshot.collectAsState()
@@ -48,6 +51,8 @@ fun HomeScreen(
     val isPlaying by player.isPlaying.collectAsState()
     val shuffle by player.shuffle.collectAsState()
     val repeat by player.repeat.collectAsState()
+    val playlists by playlistsViewModel.all.collectAsState()
+    var pendingAdd by remember { mutableStateOf<List<Track>?>(null) }
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
@@ -62,12 +67,18 @@ fun HomeScreen(
     // With nothing current, Now Playing is hidden; clear the flag so it does not reappear when a Track is queued later.
     LaunchedEffect(queueState.current == null) { if (queueState.current == null) showNowPlaying = false }
     val snackbarHost = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(player) {
         // Each message gets its own coroutine, so a new failure replaces the one on screen instead of queueing behind it.
         player.skipped.collect { title ->
             snackbarHost.currentSnackbarData?.dismiss()
             launch { snackbarHost.showSnackbar("Couldn't play $title, skipped") }
         }
+    }
+
+    fun confirmAdd(message: String) {
+        snackbarHost.currentSnackbarData?.dismiss()
+        scope.launch { snackbarHost.showSnackbar(message) }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -82,6 +93,8 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { pendingAdd = listOf(it) },
+                    onAddAlbumToPlaylist = { pendingAdd = openAlbum.tracks },
                     onClose = { openAlbumId = null },
                 )
             } else if (openArtist != null) {
@@ -93,6 +106,7 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { pendingAdd = listOf(it) },
                     onAlbumClick = { openAlbumId = it.key },
                     onClose = { openArtistKey = null },
                 )
@@ -107,6 +121,7 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { pendingAdd = listOf(it) },
                     onAlbumClick = { openAlbumId = it.key },
                     onArtistClick = { openArtistKey = it.key },
                     onClose = { showSearch = false; searchQuery = "" },
@@ -133,12 +148,18 @@ fun HomeScreen(
                         },
                         onPlayNext = player::playNext,
                         onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { pendingAdd = listOf(it) },
                     )
                     HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
-                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Coming soon")
-                    }
+                    HomeTab.Playlists -> PlaylistsScreen(
+                        playlists = playlists,
+                        onPlay = { playlist ->
+                            playlistsViewModel.play(playlist)
+                            onTrackPlayed()
+                        },
+                        onCreate = playlistsViewModel::create,
+                    )
                 }
             }
         }
@@ -161,6 +182,20 @@ fun HomeScreen(
                     onClose = { showNowPlaying = false },
                 )
             }
+        }
+        pendingAdd?.let { tracks ->
+            AddToPlaylistDialog(
+                playlists = playlists,
+                onPick = { playlist ->
+                    playlistsViewModel.add(playlist, tracks, ::confirmAdd)
+                    pendingAdd = null
+                },
+                onCreate = { name ->
+                    playlistsViewModel.createAndAdd(name, tracks, ::confirmAdd)
+                    pendingAdd = null
+                },
+                onDismiss = { pendingAdd = null },
+            )
         }
         SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter))
     }

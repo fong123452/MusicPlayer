@@ -47,6 +47,7 @@ fun SearchScreen(
     onTrackClick: (results: List<Track>, index: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
     onClose: () -> Unit,
@@ -79,6 +80,7 @@ fun SearchScreen(
                             onClick = { onTrackClick(results.tracks, index) },
                             onPlayNext = { onPlayNext(track) },
                             onAddToQueue = { onAddToQueue(track) },
+                        onAddToPlaylist = { onAddToPlaylist(track) },
                         )
                     }
                 }
