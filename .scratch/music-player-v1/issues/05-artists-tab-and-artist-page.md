@@ -11,3 +11,7 @@ Blocked by: 04
 - [ ] A compilation Track is listed under its own Track Artist (core test)
 - [ ] The Artists tab lists seeded Artists, and tapping one opens a page with their Albums and Tracks (UI test)
 - [ ] Playing from the Artist page replaces the Queue with the Artist's Tracks (core test)
+
+## Comments
+
+- 2026-10-13, review decisions (user): (1) Album row duplicated between ArtistsScreen and AlbumsScreen stays as is until a third copy. (2) Play button stays hidden for an Artist with no Tracks. (3) No UI tests for stale-open-Artist clearing or Album-to-Artist back navigation; covered by the real-device pass. Fixed in 93c1a2a: Artist name independent of Track order, pluralised counts, glossary entry. Instrumented tests (ArtistsTabTest) not run: no emulator.
