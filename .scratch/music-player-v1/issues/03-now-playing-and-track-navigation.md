@@ -13,3 +13,12 @@ Blocked by: 02
 - [ ] The "skipped" snackbar shows when the fake engine reports an error (UI test)
 - [ ] Now Playing shows the current Track, a working seek bar and the Queue list (UI test)
 - [ ] The session player intercepts next and previous and routes them to Queue.next() and Queue.previous()
+
+## Comments
+
+Implementation on branch `feat/03-now-playing` (commits a683d02, 4a0a5cb, a7d0612). Instrumented UI tests are compiled but not run (no emulator); QA on a real device still outstanding. Code review decisions (user chose O1 on all four):
+
+- **Album art**: stays a placeholder here; real art loading is deferred to the Albums work (ticket 04), where Coil is introduced.
+- **Queue list**: shows the whole Queue with the current Track in bold, so reorder/remove (ticket 06) works on the full list.
+- **Stale error attribution**: accepted. A late ExoPlayer error arriving right after a manual next can skip a healthy Track; the window is tiny.
+- **Adapter tests**: `QueueForwardingPlayer` and `ControllerPlaybackEngine.currentPositionMs` get no automated test; covered by the manual real-device check (ticket 13).
