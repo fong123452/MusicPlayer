@@ -1,6 +1,7 @@
 # 06: Queue editing
 
 Status: ready-for-agent
+Closed: 2026-10-13
 Blocked by: 03
 
 **What to build:** Every Track row (in Songs, Album and Artist pages) has "Play next", which inserts the Track right after the current one, and "Add to queue", which appends it to the end. In Now Playing, the user can drag to reorder the **Queue** and remove Tracks, including the one that's playing.
@@ -19,3 +20,5 @@ Blocked by: 03
 - Instrumented tests (QueueEditingTest) were built but never run: no emulator/device was available.
 - Follow-up review fixes: Queue now tracks play intent (engine.isPlaying is false while buffering) so removing the current Track right after a skip keeps playing; removing the current last Track now leaves the last remaining Track current and paused instead of an out-of-range index, so the Queue stays reachable (appendWhileStopped dropped). Queue-flag-reset UI test added (built, not run: no device).
 - Review decisions (user, round 3): Q3 leave Queue's wantsPlay/reportedPlaying ordering against an asynchronous engine untested with the fake; verify on a real phone in ticket 13. Q4 leave skipCurrent starting playback when a paused Queue's next Track is unreadable (fix risks stopping normal broken-Track skips; needs a device to verify). Also left: the "last remaining Track stays current when nothing follows" rule is recorded here only, with no UI-level test.
+
+- Closed 2026-10-13: Merged in https://github.com/fong123452/MusicPlayer/pull/6.
