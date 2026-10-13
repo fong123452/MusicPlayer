@@ -109,7 +109,7 @@ fun HomeScreen(
                     onAddToQueue = player::addToQueue,
                     onAlbumClick = { openAlbumId = it.key },
                     onArtistClick = { openArtistKey = it.key },
-                    onClose = { showSearch = false },
+                    onClose = { showSearch = false; searchQuery = "" },
                 )
             } else {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

@@ -117,4 +117,16 @@ class SearchTest {
         compose.onNodeWithTag(ARTIST_PAGE_TAG).assertExists()
         compose.onNodeWithText("Daybreak").assertExists()
     }
+
+    @Test
+    fun closing_search_clears_the_query_for_the_next_time() {
+        openSearch()
+        compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("daybreak")
+        compose.waitForText(TRACKS_HEADER)
+
+        compose.onNodeWithContentDescription(BACK_DESCRIPTION).performClick()
+        compose.onNodeWithContentDescription(SEARCH_DESCRIPTION).performClick()
+
+        compose.onNodeWithTag(SEARCH_RESULTS_TAG).assertDoesNotExist()
+    }
 }
