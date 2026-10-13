@@ -43,6 +43,8 @@ fun HomeScreen(
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
+    // An Album that a refresh removed (or that never came back after a restart) must not leave a stale id behind.
+    LaunchedEffect(snapshot) { if (snapshot.loaded && openAlbum == null) openAlbumId = null }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {

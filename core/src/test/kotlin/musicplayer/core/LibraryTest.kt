@@ -211,4 +211,14 @@ class LibraryTest {
 
         assertEquals(listOf(2L, 1L), library.snapshot.value.albums.single().tracks.map { it.id })
     }
+
+    @Test
+    fun `album title and Album Artist match ignoring case`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, album = "Hits", albumArtist = "The Band"),
+            rawTrack(2, album = "hits", albumArtist = "THE BAND"),
+        )
+
+        assertEquals(1, library.snapshot.value.albums.size)
+    }
 }

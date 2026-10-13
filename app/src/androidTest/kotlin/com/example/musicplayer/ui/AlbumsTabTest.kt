@@ -7,7 +7,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import com.example.musicplayer.MainActivity
@@ -75,7 +77,11 @@ class AlbumsTabTest {
 
         compose.waitUntil(5_000) { engine.loaded.isNotEmpty() }
         assertEquals(listOf("content://media/audio/1"), engine.loaded)
-        compose.onNodeWithTag(MINI_PLAYER_TAG).assertExists()
+        compose.onNodeWithTag(MINI_PLAYER_TAG).performClick()
+        val queue = compose.onNodeWithTag(QUEUE_LIST_TAG)
+        queue.onChildAt(0).assertTextContains("First Song")
+        queue.onChildAt(1).assertTextContains("Second Song")
+        queue.onChildren().assertCountEquals(2)
     }
 
     @Test
@@ -94,10 +100,12 @@ class AlbumsTabTest {
     fun an_album_and_its_tracks_without_art_show_a_placeholder() {
         launchOnAlbumsTab()
         compose.waitForText("Red Record")
+        // Red Record is the only Album whose art is missing in this list of two, and each row shows its own placeholder.
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag(ROW_ART_PLACEHOLDER_TAG).fetchSemanticsNodes().size == 2 }
 
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag(ROW_ART_PLACEHOLDER_TAG).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Red Record").performClick()
 
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag(ROW_ART_PLACEHOLDER_TAG).fetchSemanticsNodes().isNotEmpty() }
+        // The page header plus its one Track.
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag(ROW_ART_PLACEHOLDER_TAG).fetchSemanticsNodes().size == 2 }
     }
 }

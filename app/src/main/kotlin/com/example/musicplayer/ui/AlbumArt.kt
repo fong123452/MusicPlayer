@@ -1,6 +1,7 @@
 package com.example.musicplayer.ui
 
 import android.content.ContentUris
+import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -31,6 +32,15 @@ import coil3.fetch.Fetcher
 import coil3.fetch.ImageFetchResult
 import coil3.key.Keyer
 import coil3.request.Options
+import java.util.concurrent.ConcurrentHashMap
+
+/** Largest power-of-two divisor that keeps the short side of a decoded cover at or above [targetPx]. */
+internal fun artSampleSize(width: Int, height: Int, targetPx: Int): Int {
+    val shortSide = minOf(width, height)
+    var sample = 1
+    while (shortSide / (sample * 2) >= targetPx) sample *= 2
+    return sample
+}
 
 /** Placeholder tag for the art in list rows and the mini player; Now Playing uses [ART_PLACEHOLDER_TAG]. */
 const val ROW_ART_PLACEHOLDER_TAG = "row_art_placeholder"
@@ -44,7 +54,12 @@ class AlbumArtFetcher(
     private val request: AlbumArtRequest,
 ) : Fetcher {
     override suspend fun fetch(): FetchResult? {
-        val bitmap = loadBitmap() ?: return null
+        if (request.albumId in withoutArt) return null
+        val bitmap = loadBitmap()
+        if (bitmap == null) {
+            withoutArt += request.albumId
+            return null
+        }
         return ImageFetchResult(bitmap.asImage(), isSampled = false, dataSource = DataSource.DISK)
     }
 
@@ -55,11 +70,22 @@ class AlbumArtFetcher(
             resolver.loadThumbnail(uri, Size(ART_PX, ART_PX), null)
         } else {
             val uri = ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"), request.albumId)
-            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+            decodeSampled(resolver, uri)
         }
     } catch (_: Exception) {
         // No art for this album, or the file cannot be read: the caller shows the placeholder.
         null
+    } catch (_: OutOfMemoryError) {
+        null
+    }
+
+    private fun decodeSampled(resolver: ContentResolver, uri: Uri): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = artSampleSize(bounds.outWidth, bounds.outHeight, ART_PX)
+        }
+        return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
     }
 
     class Factory : Fetcher.Factory<AlbumArtRequest> {
@@ -69,6 +95,9 @@ class AlbumArtFetcher(
 
     private companion object {
         const val ART_PX = 512
+
+        /** Albums known to have no art, so scrolling past them does not repeat a failing lookup. */
+        val withoutArt: MutableSet<Long> = ConcurrentHashMap.newKeySet()
     }
 }
 
