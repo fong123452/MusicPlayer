@@ -27,30 +27,8 @@ import musicplayer.core.Album
 import musicplayer.core.Artist
 import musicplayer.core.Track
 
-const val ARTISTS_LIST_TAG = "artists_list"
 const val ARTIST_PAGE_TAG = "artist_page"
 const val PLAY_ARTIST_LABEL = "Play artist"
-
-@Composable
-fun ArtistsScreen(artists: List<Artist>, onArtistClick: (Artist) -> Unit, modifier: Modifier = Modifier) {
-    LazyColumn(modifier.fillMaxSize().testTag(ARTISTS_LIST_TAG)) {
-        items(artists, key = { it.key }) { artist ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onArtistClick(artist) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Text(artist.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                Text(
-                    "${artist.albums.size} albums • ${artist.tracks.size} songs",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun ArtistDetailScreen(

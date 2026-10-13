@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import com.example.musicplayer.MainActivity
@@ -26,7 +28,7 @@ import org.junit.Test
 import javax.inject.Inject
 
 @HiltAndroidTest
-class AlbumsTabTest {
+class AlbumPageTest {
     @get:Rule(order = 0) val hilt = HiltAndroidRule(this)
     @get:Rule(order = 1) val compose = createEmptyComposeRule()
 
@@ -45,18 +47,19 @@ class AlbumsTabTest {
 
     @After fun tearDown() { scenario?.close() }
 
-    private fun launchOnAlbumsTab() {
+    private fun launchOnAlbumResults() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
         compose.waitForText("Lonely")
-        compose.onNodeWithText("Albums").performClick()
+        compose.onNodeWithContentDescription(SEARCH_DESCRIPTION).performClick()
+        compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("Record")
     }
 
     private fun ComposeTestRule.waitForText(text: String) =
         waitUntil(5_000) { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
 
     @Test
-    fun the_albums_tab_lists_seeded_albums_and_tapping_one_opens_its_page_in_track_order() {
-        launchOnAlbumsTab()
+    fun album_search_results_list_seeded_albums_and_tapping_one_opens_its_page_in_track_order() {
+        launchOnAlbumResults()
 
         compose.waitForText("Blue Record")
         compose.onNodeWithText("Red Record").assertExists()
@@ -69,7 +72,7 @@ class AlbumsTabTest {
 
     @Test
     fun tapping_a_track_on_the_album_page_replaces_the_queue_with_the_albums_tracks() {
-        launchOnAlbumsTab()
+        launchOnAlbumResults()
         compose.waitForText("Blue Record")
         compose.onNodeWithText("Blue Record").performClick()
 
@@ -86,7 +89,7 @@ class AlbumsTabTest {
 
     @Test
     fun playing_the_album_starts_at_its_first_track() {
-        launchOnAlbumsTab()
+        launchOnAlbumResults()
         compose.waitForText("Blue Record")
         compose.onNodeWithText("Blue Record").performClick()
 
@@ -98,7 +101,7 @@ class AlbumsTabTest {
 
     @Test
     fun an_album_and_its_tracks_without_art_show_a_placeholder() {
-        launchOnAlbumsTab()
+        launchOnAlbumResults()
         compose.waitForText("Red Record")
         // Red Record is the only Album whose art is missing in this list of two, and each row shows its own placeholder.
         compose.waitUntil(5_000) { compose.onAllNodesWithTag(ROW_ART_PLACEHOLDER_TAG).fetchSemanticsNodes().size == 2 }
