@@ -7,6 +7,7 @@ kotlin { jvmToolchain(17) }
 
 dependencies {
     api(libs.kotlinx.coroutines.core)
+    api(libs.androidx.datastore.preferences.core)
     testFixturesApi(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.kotlin.test)
