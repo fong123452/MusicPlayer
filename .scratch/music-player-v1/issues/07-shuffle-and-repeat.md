@@ -1,6 +1,7 @@
 # 07: Shuffle and Repeat
 
 Status: ready-for-agent
+Closed: 2026-10-13
 Blocked by: 06
 
 **What to build:** Now Playing gets a **Shuffle Mode** toggle and a **Repeat Mode** button. Turning Shuffle on keeps the current Track playing and shuffles the rest. Turning it off goes back to the original order and stays on the current Track. Tracks added with "Play next" or "Add to queue" while shuffled keep their place (right after the current Track, or at the end) when Shuffle is turned off. The Repeat button cycles Off → All → One. Under One, a Track repeats when it finishes on its own, but pressing Next still moves on. All wraps from the last Track to the first. Off stops at the end. The notification and headset controls follow the same rules.
@@ -22,3 +23,5 @@ Blocked by: 06
 - `repeatLabel` keeps the enum's `toString`. Reason: not worth an explicit mapping yet.
 
 Open: the Compose UI test (`NowPlayingTest`) and QA have not run on a device; none was available.
+
+- Closed 2026-10-13: Merged in https://github.com/fong123452/MusicPlayer/pull/8.
