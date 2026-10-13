@@ -23,12 +23,28 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
 
     private var ranOut = false
 
+    // Whether playback was asked for. The engine's isPlaying is false while it buffers, so it cannot tell a Track
+    // that is about to start from a paused one; reportedPlaying lets an outside pause (notification) clear the intent.
+    private var wantsPlay = false
+    private var reportedPlaying = false
+
     private val skippedEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
 
     /** One-shot: the title of each Track that could not play and was skipped. */
     val skipped: Flow<String> = skippedEvents
 
     init {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            engine.isPlaying.collect { playing ->
+                if (playing) {
+                    reportedPlaying = true
+                    wantsPlay = true // an outside play (notification) or recovery from buffering is intent too
+                } else if (reportedPlaying) {
+                    reportedPlaying = false
+                    wantsPlay = false
+                }
+            }
+        }
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             engine.events.collect { event ->
                 when (event) {
@@ -47,9 +63,16 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     }
 
     /** Resumes; once the Queue has run out, plays the current Track again, since the engine cannot resume from its end. */
-    fun play() = if (ranOut) loadCurrentAndPlay() else engine.play()
+    fun play() {
+        if (ranOut) return loadCurrentAndPlay()
+        wantsPlay = true
+        engine.play()
+    }
 
-    fun pause() = engine.pause()
+    fun pause() {
+        wantsPlay = false
+        engine.pause()
+    }
 
     fun seekTo(positionMs: Long) = engine.seekTo(positionMs)
 
@@ -59,8 +82,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun next() {
         val s = state.value
         if (s.currentIndex + 1 > s.tracks.lastIndex) {
-            ranOut = true
-            engine.pause()
+            stopPlayback()
             return
         }
         state.value = s.copy(currentIndex = s.currentIndex + 1)
@@ -78,16 +100,90 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
         loadCurrentAndPlay()
     }
 
+    /** Inserts [track] right after the current one; on an empty Queue it starts playing. */
+    fun playNext(track: Track) {
+        val s = state.value
+        if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        val at = s.currentIndex + 1
+        state.value = s.copy(tracks = s.tracks.toMutableList().apply { add(at, track) })
+    }
+
+    /** Appends [track] to the end; on an empty Queue it starts playing. */
+    fun addToEnd(track: Track) {
+        val s = state.value
+        if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        state.value = s.copy(tracks = s.tracks + track)
+    }
+
+    /** Moves the Track at [from] to [to]. The current Track keeps playing; indices outside the Queue are ignored. */
+    fun move(from: Int, to: Int) {
+        val s = state.value
+        if (from !in s.tracks.indices || to !in s.tracks.indices || from == to) return
+        val tracks = s.tracks.toMutableList().apply { add(to, removeAt(from)) }
+        val current = when {
+            s.currentIndex == from -> to
+            from < s.currentIndex && to >= s.currentIndex -> s.currentIndex - 1
+            from > s.currentIndex && to <= s.currentIndex -> s.currentIndex + 1
+            else -> s.currentIndex
+        }
+        state.value = QueueState(tracks, current)
+    }
+
+    /**
+     * Removing the current Track moves playback to the one after it (paused if it was paused). When none follows,
+     * playback stops and the last remaining Track is current. Removing any other Track keeps the same Track playing.
+     */
+    fun remove(index: Int) {
+        val s = state.value
+        if (index !in s.tracks.indices) return
+        val tracks = s.tracks.toMutableList().apply { removeAt(index) }
+        when {
+            index < s.currentIndex -> state.value = QueueState(tracks, s.currentIndex - 1)
+            index > s.currentIndex -> state.value = s.copy(tracks = tracks)
+            tracks.isEmpty() -> {
+                state.value = QueueState(emptyList(), -1)
+                stopPlayback()
+            }
+            index > tracks.lastIndex -> {
+                // Nothing follows: the last remaining Track becomes current, paused, so the Queue stays reachable.
+                state.value = QueueState(tracks, tracks.lastIndex)
+                loadCurrentPaused()
+            }
+            else -> {
+                val resume = wantsPlay
+                state.value = QueueState(tracks, index)
+                if (resume) loadCurrentAndPlay() else loadCurrentPaused()
+            }
+        }
+    }
+
+    private fun stopPlayback() {
+        ranOut = true
+        wantsPlay = false
+        engine.pause()
+    }
+
     private fun skipCurrent() {
         val failed = state.value.current ?: return
         skippedEvents.tryEmit(failed.title)
         next()
     }
 
+    private fun loadCurrentPaused() {
+        val track = state.value.current ?: return
+        ranOut = false
+        wantsPlay = false
+        engine.load(track)
+        engine.pause() // a player that was playing would otherwise start the loaded Track on its own
+    }
+
     private fun loadCurrentAndPlay() {
         val track = state.value.current ?: return
         ranOut = false
         engine.load(track)
+        // After load: the engine's own pause report for the old Track must not clear this intent.
+        reportedPlaying = false
+        wantsPlay = true
         engine.play()
     }
 }

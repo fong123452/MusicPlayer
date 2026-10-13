@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import musicplayer.core.LibrarySnapshot
+import musicplayer.core.Track
 
 const val TRACKS_LIST_TAG = "tracks_list"
 const val EMPTY_LIBRARY_MESSAGE = "No music found on this device"
@@ -31,6 +32,8 @@ fun TracksScreen(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onTrackClick: (index: Int) -> Unit,
+    onPlayNext: (Track) -> Unit,
+    onAddToQueue: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = modifier.fillMaxSize()) {
@@ -45,7 +48,12 @@ fun TracksScreen(
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().testTag(TRACKS_LIST_TAG)) {
                 itemsIndexed(snapshot.tracks, key = { _, track -> track.id }) { index, track ->
-                    TrackRow(track, onClick = { onTrackClick(index) })
+                    TrackRow(
+                        track,
+                        onClick = { onTrackClick(index) },
+                        onPlayNext = { onPlayNext(track) },
+                        onAddToQueue = { onAddToQueue(track) },
+                    )
                 }
             }
         }
