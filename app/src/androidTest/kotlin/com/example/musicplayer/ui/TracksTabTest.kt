@@ -22,7 +22,7 @@ import org.junit.Test
 import javax.inject.Inject
 
 @HiltAndroidTest
-class SongsTabTest {
+class TracksTabTest {
     @get:Rule(order = 0) val hilt = HiltAndroidRule(this)
     @get:Rule(order = 1) val compose = createEmptyComposeRule()
 
@@ -38,7 +38,7 @@ class SongsTabTest {
         waitUntil(5_000) { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
 
     @Test
-    fun songs_are_listed_by_title_ignoring_case() {
+    fun tracks_are_listed_by_title_ignoring_case() {
         source.tracks = listOf(
             rawTrack(1, title = "banana"),
             rawTrack(2, title = "Cherry"),
@@ -48,7 +48,7 @@ class SongsTabTest {
         launch()
 
         compose.waitForText("apple")
-        val list = compose.onNodeWithTag(SONGS_LIST_TAG)
+        val list = compose.onNodeWithTag(TRACKS_LIST_TAG)
         list.onChildAt(0).assertTextContains("apple")
         list.onChildAt(1).assertTextContains("banana")
         list.onChildAt(2).assertTextContains("Cherry")
@@ -71,13 +71,13 @@ class SongsTabTest {
         compose.waitForText("Old")
 
         source.tracks = listOf(rawTrack(1, title = "Old"), rawTrack(2, title = "Newly added"))
-        compose.onNodeWithTag(SONGS_LIST_TAG).performTouchInput { swipeDown() }
+        compose.onNodeWithTag(TRACKS_LIST_TAG).performTouchInput { swipeDown() }
 
         compose.waitForText("Newly added")
     }
 
     @Test
-    fun home_has_tabs_for_songs_albums_artists_and_playlists() {
+    fun home_has_tabs_for_tracks_albums_artists_and_playlists() {
         launch()
 
         listOf("Songs", "Albums", "Artists", "Playlists").forEach {

@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 enum class HomeTab(val label: String) {
-    Songs("Songs"),
+    Tracks("Songs"),
     Albums("Albums"),
     Artists("Artists"),
     Playlists("Playlists"),
@@ -43,7 +43,7 @@ fun HomeScreen(
             }
         }
         when (HomeTab.entries[selected]) {
-            HomeTab.Songs -> SongsScreen(
+            HomeTab.Tracks -> TracksScreen(
                 snapshot = snapshot,
                 isRefreshing = isRefreshing,
                 onRefresh = viewModel::refresh,
