@@ -22,4 +22,7 @@ interface PlaybackEngine {
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
+
+    /** Where the loaded Track is now, in milliseconds. */
+    fun currentPositionMs(): Long
 }

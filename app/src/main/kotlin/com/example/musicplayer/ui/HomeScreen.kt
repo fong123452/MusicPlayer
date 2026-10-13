@@ -4,6 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,27 +40,49 @@ fun HomeScreen(
     val queueState by player.queueState.collectAsState()
     val isPlaying by player.isPlaying.collectAsState()
     var selected by rememberSaveable { mutableIntStateOf(0) }
+    var showNowPlaying by rememberSaveable { mutableStateOf(false) }
+    val snackbarHost = remember { SnackbarHostState() }
+    LaunchedEffect(player) {
+        player.skipped.collect { title -> snackbarHost.showSnackbar("Couldn't play $title, skipped") }
+    }
 
-    Column(Modifier.fillMaxSize()) {
-        queueState.current?.let { MiniPlayer(it, isPlaying, player::togglePlayPause) }
-        PrimaryTabRow(selectedTabIndex = selected) {
-            HomeTab.entries.forEachIndexed { index, tab ->
-                Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            queueState.current?.let { MiniPlayer(it, isPlaying, player::togglePlayPause, onOpen = { showNowPlaying = true }) }
+            PrimaryTabRow(selectedTabIndex = selected) {
+                HomeTab.entries.forEachIndexed { index, tab ->
+                    Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
+                }
+            }
+            when (HomeTab.entries[selected]) {
+                HomeTab.Tracks -> TracksScreen(
+                    snapshot = snapshot,
+                    isRefreshing = isRefreshing,
+                    onRefresh = viewModel::refresh,
+                    onTrackClick = { index ->
+                        player.playFrom(snapshot.tracks, index)
+                        onTrackPlayed()
+                    },
+                )
+                else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Coming soon")
+                }
             }
         }
-        when (HomeTab.entries[selected]) {
-            HomeTab.Tracks -> TracksScreen(
-                snapshot = snapshot,
-                isRefreshing = isRefreshing,
-                onRefresh = viewModel::refresh,
-                onTrackClick = { index ->
-                    player.playFrom(snapshot.tracks, index)
-                    onTrackPlayed()
-                },
-            )
-            else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Coming soon")
+        if (showNowPlaying && queueState.current != null) {
+            Surface(Modifier.fillMaxSize()) {
+                NowPlayingScreen(
+                    queueState = queueState,
+                    isPlaying = isPlaying,
+                    positionMs = player::positionMs,
+                    onTogglePlayPause = player::togglePlayPause,
+                    onNext = player::next,
+                    onPrevious = player::previous,
+                    onSeek = player::seekTo,
+                    onClose = { showNowPlaying = false },
+                )
             }
         }
+        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter))
     }
 }

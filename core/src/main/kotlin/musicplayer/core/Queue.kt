@@ -49,6 +49,8 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
 
     fun seekTo(positionMs: Long) = engine.seekTo(positionMs)
 
+    fun positionMs(): Long = engine.currentPositionMs()
+
     /** Moves to the next Track; on the last Track playback stops. */
     fun next() {
         val s = state.value

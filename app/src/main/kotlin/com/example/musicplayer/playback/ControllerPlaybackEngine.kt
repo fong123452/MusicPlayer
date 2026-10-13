@@ -51,7 +51,10 @@ class ControllerPlaybackEngine @Inject constructor(
         connection.run { } // connect eagerly so isPlaying and events track the service from the start
     }
 
+    private var controller: MediaController? = null
+
     private fun onConnected(controller: MediaController) {
+        this.controller = controller
         playing.value = controller.isPlaying
         controller.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -89,6 +92,8 @@ class ControllerPlaybackEngine @Inject constructor(
     override fun pause() = withController { it.pause() }
 
     override fun seekTo(positionMs: Long) = withController { it.seekTo(positionMs) }
+
+    override fun currentPositionMs(): Long = controller?.currentPosition ?: 0L
 
     /** Runs [block] once the controller is connected; blocks queued before then run in order. */
     private fun withController(block: (MediaController) -> Unit) = connection.run(block)
