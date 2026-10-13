@@ -73,6 +73,30 @@ class PlaylistsTest {
     }
 
     @Test
+    fun `adding a set of tracks appends the missing ones in order and ignores duplicates`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(3)))
+
+        val result = lists.add(id, listOf(track(1), track(3), track(2), track(1)))
+
+        assertEquals(listOf(track(1), track(2)), result.added)
+        assertEquals(listOf(track(3)), result.alreadyThere)
+        assertEquals(listOf(track(3), track(1), track(2)), lists.current(id).tracks)
+    }
+
+    @Test
+    fun `ticked tracks are picked in library order, without the ones the playlist already holds`() = runTest {
+        playlists()
+        val all = library.snapshot.value.tracks
+
+        val picked = tracksToAdd(all, ticked = setOf(4L, 2L, 3L), alreadyIn = setOf(3L))
+
+        assertEquals(all.filter { it.id in setOf(2L, 4L) }, picked)
+        assertEquals(emptyList(), tracksToAdd(all, ticked = emptySet(), alreadyIn = setOf(3L)))
+    }
+
+    @Test
     fun `playing a playlist fills the queue, and reordering or removing queue entries leaves the playlist unchanged`() = runTest {
         val lists = playlists()
         val id = lists.create("Mix")

@@ -47,6 +47,10 @@ data class Playlist(val id: Long, val name: String, val tracks: List<Track>)
 /** What happened when Tracks were added to a Playlist. */
 data class AddResult(val added: List<Track>, val alreadyThere: List<Track>)
 
+/** The Tracks to append for a checklist over [library]: the ticked ones the Playlist does not hold, in list order. */
+fun tracksToAdd(library: List<Track>, ticked: Set<Long>, alreadyIn: Set<Long>): List<Track> =
+    library.filter { it.id in ticked && it.id !in alreadyIn }
+
 class Playlists(private val store: PlaylistStore, private val library: Library) {
     /** The Playlists with their Tracks resolved from the current Library; ids the Library no longer has are left out. */
     val playlists: Flow<List<Playlist>> = combine(store.playlists, library.snapshot) { stored, snapshot ->
