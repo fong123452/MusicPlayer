@@ -10,6 +10,8 @@ An Android app that plays audio files already stored on the user's device, and l
 One audio file on the device that Android marks as music and that is at least 30 seconds long, along with its tags (title, artist, album, album artist, duration). Ringtones, notification sounds and voice notes are not Tracks.
 _Avoid_: Song, file, media item
 
+The Home tab that lists Tracks is labelled "Songs" because the product spec names it so; code identifiers still say Track.
+
 **Library**:
 Every Track the app found on the device the last time it scanned.
 _Avoid_: Collection, catalog
