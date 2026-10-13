@@ -2,8 +2,8 @@ package com.example.musicplayer.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,8 +27,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import musicplayer.core.LibrarySnapshot
 import musicplayer.core.Track
@@ -55,7 +55,7 @@ fun AddSongsScreen(
     BackHandler(onBack = onClose)
     var query by rememberSaveable { mutableStateOf("") }
     // Only ids are saved, so the ticks survive rotation; Tracks are looked up again in the current Library.
-    var tickedIds by rememberSaveable { mutableStateOf<List<Long>>(emptyList()) }
+    var tickedIds by rememberSaveable { mutableStateOf<List<Long>>(ArrayList()) }
     val ticked = tickedIds.toSet()
     val shown = remember(snapshot, query) {
         if (query.isBlank()) snapshot.tracks else snapshot.search(query).tracks
