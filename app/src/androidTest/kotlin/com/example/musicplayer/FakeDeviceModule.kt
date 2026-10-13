@@ -11,6 +11,10 @@ import musicplayer.core.FakePlaybackEngine
 import musicplayer.core.FakePlaylistStore
 import musicplayer.core.FakeThemeStore
 import musicplayer.core.ThemeStore
+import musicplayer.core.FakeSoundEffects
+import musicplayer.core.FakeSoundStore
+import musicplayer.core.SoundEffects
+import musicplayer.core.SoundStore
 import musicplayer.core.FakeTrackSource
 import musicplayer.core.PlaybackEngine
 import musicplayer.core.PlaylistStore
@@ -55,4 +59,15 @@ object FakeDeviceModule {
     @Provides
     @Singleton
     fun themeStore(): ThemeStore = FakeThemeStore()
+
+    @Provides
+    @Singleton
+    fun fakeSoundEffects() = FakeSoundEffects()
+
+    @Provides
+    fun soundEffects(fake: FakeSoundEffects): SoundEffects = fake
+
+    @Provides
+    @Singleton
+    fun soundStore(): SoundStore = FakeSoundStore()
 }

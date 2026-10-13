@@ -11,3 +11,9 @@ Blocked by: 02, 11
 - [ ] Choosing "Off" disables the equalizer (core test)
 - [ ] Unsupported effects are reported, and Settings shows "not supported" (core test and UI test)
 - [ ] The preset list in Settings comes from SoundEffects (UI test)
+
+## Comments
+
+- Review decision (2026-10-13), untested adapter logic: O1. `AndroidSoundEffects` now sits on a small `EffectFactory` seam and is unit tested in `app/src/test` (session re-attach, unsupported on a failed create, dead effect dropped, unknown preset = off). Reason: that is where the crash risk is.
+- Review decision (2026-10-13), `themeDataStore` name and `Thread.sleep` polling in `SoundTest`: O2, keep. Style only, no wrong behaviour.
+- Still to do by a human: run `SoundSettingsTest` on a device/emulator and listen on a real phone (none available while implementing); QA click-through not run.
