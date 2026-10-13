@@ -231,4 +231,53 @@ class LibraryTest {
 
         assertEquals(2, library.snapshot.value.albums.size)
     }
+
+    @Test
+    fun `an Album Artist with no Tracks of their own still appears as an Artist with their Albums`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Guest", album = "Record", albumArtist = "The Band"),
+        )
+
+        val artists = library.snapshot.value.artists.associateBy { it.name }
+        val band = artists.getValue("The Band")
+        assertEquals(listOf("Record"), band.albums.map { it.title })
+        assertEquals(emptyList(), band.tracks)
+        assertEquals(listOf(1L), artists.getValue("Guest").tracks.map { it.id })
+    }
+
+    @Test
+    fun `a compilation Track is listed under its own Track Artist and the compilation under Various Artists`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Alice", album = "Hits", albumArtist = "Various Artists"),
+            rawTrack(2, artist = "Bob", album = "Hits", albumArtist = "Various Artists"),
+        )
+
+        val artists = library.snapshot.value.artists.associateBy { it.name }
+        assertEquals(listOf(1L), artists.getValue("Alice").tracks.map { it.id })
+        assertEquals(emptyList(), artists.getValue("Alice").albums)
+        assertEquals(listOf("Hits"), artists.getValue("Various Artists").albums.map { it.title })
+        assertEquals(emptyList(), artists.getValue("Various Artists").tracks)
+    }
+
+    @Test
+    fun `an Artist who is also the Album Artist has both Albums and Tracks, and names match ignoring case`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "the band", album = "Record", albumArtist = "The Band"),
+            rawTrack(2, artist = "The Band", album = "Single", albumArtist = "The Band"),
+        )
+
+        val band = library.snapshot.value.artists.single()
+        assertEquals(setOf("Record", "Single"), band.albums.map { it.title }.toSet())
+        assertEquals(setOf(1L, 2L), band.tracks.map { it.id }.toSet())
+    }
+
+    @Test
+    fun `artists are listed by name ignoring case`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "beta"),
+            rawTrack(2, artist = "Alpha"),
+        )
+
+        assertEquals(listOf("Alpha", "beta"), library.snapshot.value.artists.map { it.name })
+    }
 }
