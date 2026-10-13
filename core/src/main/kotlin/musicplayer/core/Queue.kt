@@ -82,6 +82,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun playNext(track: Track) {
         val s = state.value
         if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        if (s.current == null) return appendWhileStopped(s, track)
         val at = s.currentIndex + 1
         state.value = s.copy(tracks = s.tracks.toMutableList().apply { add(at, track) })
     }
@@ -90,7 +91,13 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun addToEnd(track: Track) {
         val s = state.value
         if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        if (s.current == null) return appendWhileStopped(s, track)
         state.value = s.copy(tracks = s.tracks + track)
+    }
+
+    /** After the current Track was removed with none left, the new Track becomes current; play resumes it. */
+    private fun appendWhileStopped(s: QueueState, track: Track) {
+        state.value = QueueState(s.tracks + track, s.tracks.size)
     }
 
     /** Moves the Track at [from] to [to]. The current Track keeps playing; indices outside the Queue are ignored. */

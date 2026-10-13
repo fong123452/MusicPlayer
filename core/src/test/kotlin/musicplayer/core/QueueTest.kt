@@ -386,4 +386,27 @@ class QueueTest {
         assertNull(queue.queue.value.current)
         assertFalse(queue.isPlaying.value)
     }
+
+    @Test
+    fun `adding to a stopped queue after its current track was removed makes the new track current without playing it`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        queue.remove(2)
+
+        queue.playNext(track(9))
+
+        assertEquals(listOf(1L, 2L, 9L), ids(queue))
+        assertEquals(9L, queue.queue.value.current?.id)
+        assertFalse(queue.isPlaying.value)
+
+        queue.play()
+        assertTrue(queue.isPlaying.value)
+        assertEquals("content://media/audio/9", engine.loaded.last())
+
+        val other = queueOf()
+        other.replace(tracks, startIndex = 2)
+        other.remove(2)
+        other.addToEnd(track(8))
+        assertEquals(8L, other.queue.value.current?.id)
+    }
 }

@@ -45,7 +45,7 @@ fun TrackRow(
         AlbumArt(track.albumId, 48.dp, ROW_ART_PLACEHOLDER_TAG)
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(track.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-            Text("${track.artist} • ${track.album}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            Text("${track.artist} â€¢ ${track.album}", style = MaterialTheme.typography.bodySmall, maxLines = 1)
         }
         var menuOpen by remember { mutableStateOf(false) }
         IconButton(onClick = { menuOpen = true }) {
