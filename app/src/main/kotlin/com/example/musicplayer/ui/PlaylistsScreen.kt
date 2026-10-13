@@ -41,7 +41,7 @@ fun trackCountLabel(count: Int) = if (count == 1) "1 song" else "$count songs"
 @Composable
 fun PlaylistsScreen(
     playlists: List<Playlist>,
-    onPlay: (Playlist) -> Unit,
+    onOpen: (Playlist) -> Unit,
     onCreate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -51,7 +51,7 @@ fun PlaylistsScreen(
         LazyColumn(Modifier.fillMaxSize().testTag(PLAYLISTS_LIST_TAG)) {
             items(playlists, key = { it.id }) { playlist ->
                 Column(
-                    Modifier.fillMaxWidth().clickable { onPlay(playlist) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                    Modifier.fillMaxWidth().clickable { onOpen(playlist) }.padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Text(playlist.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                     Text(trackCountLabel(playlist.tracks.size), style = MaterialTheme.typography.bodySmall)
@@ -63,11 +63,17 @@ fun PlaylistsScreen(
 }
 
 @Composable
-fun NamePlaylistDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
+fun NamePlaylistDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+    title: String = NEW_PLAYLIST_LABEL,
+    confirmLabel: String = CREATE_LABEL,
+    initialName: String = "",
+) {
+    var name by rememberSaveable { mutableStateOf(initialName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(NEW_PLAYLIST_LABEL) },
+        title = { Text(title) },
         text = {
             OutlinedTextField(
                 value = name,
@@ -77,7 +83,7 @@ fun NamePlaylistDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
                 modifier = Modifier.testTag(PLAYLIST_NAME_FIELD_TAG),
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text(CREATE_LABEL) } },
+        confirmButton = { TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) { Text(confirmLabel) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(CANCEL_LABEL) } },
     )
 }

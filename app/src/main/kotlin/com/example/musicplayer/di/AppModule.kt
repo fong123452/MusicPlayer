@@ -39,7 +39,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun playlists(store: PlaylistStore, library: Library): Playlists = Playlists(store, library)
+    fun playlists(store: PlaylistStore, library: Library, @ApplicationScope scope: CoroutineScope): Playlists =
+        Playlists(store, library).also { it.pruneOnRefresh(scope) }
 
     @Provides
     @Singleton

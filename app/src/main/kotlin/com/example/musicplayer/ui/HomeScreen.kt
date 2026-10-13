@@ -66,6 +66,10 @@ fun HomeScreen(
     var openArtistKey by rememberSaveable { mutableStateOf<String?>(null) }
     val openArtist = snapshot.artists.firstOrNull { it.key == openArtistKey }
     LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
+    var openPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openPlaylist = playlists.firstOrNull { it.id == openPlaylistId }
+    // A Playlist that was deleted must not leave a stale id behind. Playlists load asynchronously, so wait for the Library.
+    LaunchedEffect(playlists, snapshot.loaded) { if (snapshot.loaded && openPlaylist == null) openPlaylistId = null }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
@@ -116,6 +120,20 @@ fun HomeScreen(
                     onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onClose = { openArtistKey = null },
                 )
+            } else if (openPlaylist != null) {
+                PlaylistDetailScreen(
+                    playlist = openPlaylist,
+                    onPlayAll = { if (playlistsViewModel.play(openPlaylist)) onTrackPlayed() },
+                    onPlay = { index ->
+                        player.playFrom(openPlaylist.tracks, index)
+                        onTrackPlayed()
+                    },
+                    onRename = { playlistsViewModel.rename(openPlaylist, it) },
+                    onDelete = { playlistsViewModel.delete(openPlaylist) },
+                    onMove = { from, to -> playlistsViewModel.move(openPlaylist, from, to) },
+                    onRemove = { playlistsViewModel.remove(openPlaylist, it) },
+                    onClose = { openPlaylistId = null },
+                )
             } else if (showSearch) {
                 SearchScreen(
                     snapshot = snapshot,
@@ -165,9 +183,7 @@ fun HomeScreen(
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
                     HomeTab.Playlists -> PlaylistsScreen(
                         playlists = playlists,
-                        onPlay = { playlist ->
-                            if (playlistsViewModel.play(playlist)) onTrackPlayed()
-                        },
+                        onOpen = { openPlaylistId = it.id },
                         onCreate = playlistsViewModel::create,
                     )
                 }

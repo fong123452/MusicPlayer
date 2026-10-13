@@ -45,6 +45,22 @@ class PlaylistsViewModel @Inject constructor(
         viewModelScope.launch { messageEvents.emit(core.add(playlist.id, tracks).describe(playlist.name)) }
     }
 
+    fun rename(playlist: Playlist, name: String) {
+        viewModelScope.launch { core.rename(playlist.id, name) }
+    }
+
+    fun delete(playlist: Playlist) {
+        viewModelScope.launch { core.delete(playlist.id) }
+    }
+
+    fun remove(playlist: Playlist, track: Track) {
+        viewModelScope.launch { core.remove(playlist.id, track) }
+    }
+
+    fun move(playlist: Playlist, from: Int, to: Int) {
+        viewModelScope.launch { core.move(playlist.id, from, to) }
+    }
+
     /** Returns false, playing nothing, when the Playlist has no Tracks. */
     fun play(playlist: Playlist): Boolean = core.play(playlist, queue)
 }
