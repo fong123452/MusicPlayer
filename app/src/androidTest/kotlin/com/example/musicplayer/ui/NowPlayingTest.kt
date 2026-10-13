@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -104,6 +105,26 @@ class NowPlayingTest {
 
         assertEquals(0L, engine.positionMs)
         assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun the_shuffle_and_repeat_controls_show_their_current_state() {
+        openNowPlaying()
+        compose.onNodeWithTag(SHUFFLE_TAG).assertTextEquals("Shuffle: Off")
+        compose.onNodeWithTag(REPEAT_TAG).assertTextEquals("Repeat: Off")
+
+        compose.onNodeWithTag(SHUFFLE_TAG).performClick()
+        compose.onNodeWithTag(SHUFFLE_TAG).assertTextEquals("Shuffle: On")
+
+        compose.onNodeWithTag(REPEAT_TAG).performClick()
+        compose.onNodeWithTag(REPEAT_TAG).assertTextEquals("Repeat: All")
+        compose.onNodeWithTag(REPEAT_TAG).performClick()
+        compose.onNodeWithTag(REPEAT_TAG).assertTextEquals("Repeat: One")
+        compose.onNodeWithTag(REPEAT_TAG).performClick()
+        compose.onNodeWithTag(REPEAT_TAG).assertTextEquals("Repeat: Off")
+
+        compose.onNodeWithTag(SHUFFLE_TAG).performClick()
+        compose.onNodeWithTag(SHUFFLE_TAG).assertTextEquals("Shuffle: Off")
     }
 
     @Test
