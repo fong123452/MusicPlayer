@@ -68,6 +68,8 @@ fun HomeScreen(
                         player.playFrom(openAlbum.tracks, index)
                         onTrackPlayed()
                     },
+                    onPlayNext = player::playNext,
+                    onAddToQueue = player::addToQueue,
                     onClose = { openAlbumId = null },
                 )
             } else if (openArtist != null) {
@@ -77,6 +79,8 @@ fun HomeScreen(
                         player.playFrom(openArtist.tracks, index)
                         onTrackPlayed()
                     },
+                    onPlayNext = player::playNext,
+                    onAddToQueue = player::addToQueue,
                     onAlbumClick = { openAlbumId = it.key },
                     onClose = { openArtistKey = null },
                 )
@@ -95,6 +99,8 @@ fun HomeScreen(
                             player.playFrom(snapshot.tracks, index)
                             onTrackPlayed()
                         },
+                        onPlayNext = player::playNext,
+                        onAddToQueue = player::addToQueue,
                     )
                     HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
@@ -114,6 +120,8 @@ fun HomeScreen(
                     onNext = player::next,
                     onPrevious = player::previous,
                     onSeek = player::seekTo,
+                    onMove = player::moveInQueue,
+                    onRemove = player::removeFromQueue,
                     onClose = { showNowPlaying = false },
                 )
             }

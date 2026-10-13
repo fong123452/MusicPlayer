@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import musicplayer.core.Album
 import musicplayer.core.Artist
+import musicplayer.core.Track
 
 const val ARTISTS_LIST_TAG = "artists_list"
 const val ARTIST_PAGE_TAG = "artist_page"
@@ -55,6 +56,8 @@ fun ArtistsScreen(artists: List<Artist>, onArtistClick: (Artist) -> Unit, modifi
 fun ArtistDetailScreen(
     artist: Artist,
     onPlay: (startIndex: Int) -> Unit,
+    onPlayNext: (Track) -> Unit,
+    onAddToQueue: (Track) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -92,7 +95,12 @@ fun ArtistDetailScreen(
             if (artist.tracks.isNotEmpty()) {
                 item(key = "tracks-header") { SectionHeader("Songs") }
                 itemsIndexed(artist.tracks, key = { _, track -> "track-${track.id}" }) { index, track ->
-                    TrackRow(track, onClick = { onPlay(index) })
+                    TrackRow(
+                        track,
+                        onClick = { onPlay(index) },
+                        onPlayNext = { onPlayNext(track) },
+                        onAddToQueue = { onAddToQueue(track) },
+                    )
                 }
             }
         }

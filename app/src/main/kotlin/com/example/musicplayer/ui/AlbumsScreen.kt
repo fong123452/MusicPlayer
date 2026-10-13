@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import musicplayer.core.Album
+import musicplayer.core.Track
 
 const val ALBUMS_LIST_TAG = "albums_list"
 const val ALBUM_TRACKS_TAG = "album_tracks"
@@ -54,6 +55,8 @@ fun AlbumsScreen(albums: List<Album>, onAlbumClick: (Album) -> Unit, modifier: M
 fun AlbumDetailScreen(
     album: Album,
     onPlay: (startIndex: Int) -> Unit,
+    onPlayNext: (Track) -> Unit,
+    onAddToQueue: (Track) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,7 +78,12 @@ fun AlbumDetailScreen(
         }
         LazyColumn(Modifier.fillMaxSize().testTag(ALBUM_TRACKS_TAG)) {
             itemsIndexed(album.tracks, key = { _, track -> track.id }) { index, track ->
-                TrackRow(track, onClick = { onPlay(index) })
+                TrackRow(
+                    track,
+                    onClick = { onPlay(index) },
+                    onPlayNext = { onPlayNext(track) },
+                    onAddToQueue = { onAddToQueue(track) },
+                )
             }
         }
     }
