@@ -1,6 +1,7 @@
 # 01: Library scan and Songs tab
 
 Status: ready-for-agent
+Closed: 2026-10-13
 
 **What to build:** The first runnable app. On launch, the user is asked for permission to read audio with a clear explanation. If they deny it, a screen explains why the app is empty and offers to grant the permission. Once granted, the app builds the **Library** from the device's music. A **Track** is a file Android marks as music that is at least 30 seconds long. The Songs tab lists every Track alphabetically by title, and a message appears when the Library is empty. The Library refreshes whenever the app comes to the foreground, and on pull-to-refresh. This ticket also sets up the project and both test harnesses that later tickets build on: Kotlin, Compose, Material 3, Hilt, min SDK 26, the player core with its **TrackSource** port and fake, JVM tests, and instrumented Compose tests using Hilt test bindings.
 
@@ -14,3 +15,7 @@ Status: ready-for-agent
 - [ ] The empty-Library message shows when TrackSource returns nothing (UI test)
 - [ ] The Library refreshes on ON_START of the process lifecycle and on pull-to-refresh, with no ContentObserver
 - [ ] Home has the tab structure ready for Songs, Albums, Artists and Playlists (the other tabs can be placeholders)
+
+## Comments
+
+Merged in https://github.com/fong123452/MusicPlayer/pull/1.
