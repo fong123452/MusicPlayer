@@ -29,10 +29,8 @@ class FakePlaylistStore : PlaylistStore {
 
     override suspend fun remove(playlistId: Long, trackId: Long) = update(playlistId) { it.copy(trackIds = it.trackIds - trackId) }
 
-    override suspend fun reorder(playlistId: Long, trackIds: List<Long>) = update(playlistId) { entry ->
-        val listed = trackIds.distinct().filter { it in entry.trackIds }
-        entry.copy(trackIds = listed + (entry.trackIds - listed.toSet()))
-    }
+    override suspend fun reorder(playlistId: Long, trackIds: List<Long>) =
+        update(playlistId) { it.copy(trackIds = reorderedIds(it.trackIds, trackIds)) }
 
     override suspend fun rename(playlistId: Long, name: String) = update(playlistId) { it.copy(name = name) }
 

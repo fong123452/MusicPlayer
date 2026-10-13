@@ -35,6 +35,12 @@ interface PlaylistStore {
     suspend fun retainOnly(keep: Set<Long>)
 }
 
+/** The order a Playlist holding [existing] takes when [wanted] is put first: the ones it holds, then the rest as they were. */
+fun reorderedIds(existing: List<Long>, wanted: List<Long>): List<Long> {
+    val listed = wanted.distinct().filter { it in existing }
+    return listed + (existing - listed.toSet())
+}
+
 /** A named, ordered list of Tracks that the user keeps. */
 data class Playlist(val id: Long, val name: String, val tracks: List<Track>)
 

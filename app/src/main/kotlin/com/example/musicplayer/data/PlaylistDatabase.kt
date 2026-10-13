@@ -9,6 +9,7 @@ import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+import musicplayer.core.reorderedIds
 
 @Entity(tableName = "playlist")
 data class PlaylistRow(
@@ -81,9 +82,7 @@ interface PlaylistDao {
     @Transaction
     suspend fun reorder(playlistId: Long, trackIds: List<Long>) {
         val existing = trackIds(playlistId)
-        val listed = trackIds.distinct().filter { it in existing }
-        val ordered = listed + (existing - listed.toSet())
-        ordered.forEachIndexed { position, id -> setPosition(playlistId, id, position) }
+        reorderedIds(existing, trackIds).forEachIndexed { position, id -> setPosition(playlistId, id, position) }
     }
 
     @Transaction

@@ -68,8 +68,9 @@ fun HomeScreen(
     LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
     var openPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
     val openPlaylist = playlists.firstOrNull { it.id == openPlaylistId }
-    // A Playlist that was deleted must not leave a stale id behind. Playlists load asynchronously, so wait for the Library.
-    LaunchedEffect(playlists, snapshot.loaded) { if (snapshot.loaded && openPlaylist == null) openPlaylistId = null }
+    // A Playlist that was deleted must not leave a stale id behind. Playlists load asynchronously, so wait for them.
+    val playlistsLoaded by playlistsViewModel.loaded.collectAsState()
+    LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) openPlaylistId = null }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }

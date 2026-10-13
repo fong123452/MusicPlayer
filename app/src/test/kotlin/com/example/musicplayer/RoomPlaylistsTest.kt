@@ -112,5 +112,17 @@ class RoomPlaylistsTest {
         assertEquals(listOf(listOf(2L), listOf(3L)), store.playlists.first().map { it.trackIds })
     }
 
+    @Test
+    fun `retaining only some tracks copes with more stale entries than one statement can bind`() = runBlocking {
+        val lists = open()
+        val store = RoomPlaylistStore(db!!.playlists())
+        val id = lists.create("Big")
+        store.add(id, (1L..40_000L).toList())
+
+        store.retainOnly(setOf(1L, 40_000L))
+
+        assertEquals(listOf(listOf(1L, 40_000L)), store.playlists.first().map { it.trackIds })
+    }
+
     private fun tracksOf(vararg ids: Long) = ids.map { id -> library.snapshot.value.tracks.first { it.id == id } }
 }
