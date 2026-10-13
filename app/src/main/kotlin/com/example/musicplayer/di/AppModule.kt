@@ -22,6 +22,9 @@ import musicplayer.core.PlaybackEngine
 import musicplayer.core.PlaylistStore
 import musicplayer.core.Playlists
 import musicplayer.core.Queue
+import musicplayer.core.ThemeStore
+import musicplayer.core.DataStoreThemeStore
+import musicplayer.core.themeDataStore
 import musicplayer.core.TrackSource
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -67,7 +70,7 @@ interface DeviceModule {
     fun audioPermission(impl: AndroidAudioPermission): AudioPermission
 }
 
-/** The Room-backed Playlist storage; instrumented tests replace this module with an in-memory fake. */
+/** The Room-backed Playlist storage and DataStore-backed Theme storage; instrumented tests replace this module with an in-memory fake. */
 @Module
 @InstallIn(SingletonComponent::class)
 object StorageModule {
@@ -77,4 +80,9 @@ object StorageModule {
         val db = Room.databaseBuilder(context, PlaylistDatabase::class.java, "playlists.db").build()
         return RoomPlaylistStore(db.playlists())
     }
+
+    @Provides
+    @Singleton
+    fun themeStore(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): ThemeStore =
+        DataStoreThemeStore(themeDataStore(scope, context.filesDir.resolve("datastore/theme.preferences_pb")))
 }

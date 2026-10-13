@@ -9,6 +9,8 @@ import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import musicplayer.core.FakePlaybackEngine
 import musicplayer.core.FakePlaylistStore
+import musicplayer.core.FakeThemeStore
+import musicplayer.core.ThemeStore
 import musicplayer.core.FakeTrackSource
 import musicplayer.core.PlaybackEngine
 import musicplayer.core.PlaylistStore
@@ -49,4 +51,8 @@ object FakeDeviceModule {
     @Provides
     @Singleton
     fun playlistStore(): PlaylistStore = FakePlaylistStore()
+
+    @Provides
+    @Singleton
+    fun themeStore(): ThemeStore = FakeThemeStore()
 }
