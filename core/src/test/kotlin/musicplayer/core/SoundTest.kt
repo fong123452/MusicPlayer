@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
@@ -23,9 +24,10 @@ class SoundTest {
         val effects = if (support == null) FakeSoundEffects() else FakeSoundEffects(support)
         val sound = Sound(store, effects, engine.isPlaying, scope)
 
-        fun close() {
+        // Join the store's scope: DataStore frees the file only once it has completed, and a restart opens it again.
+        suspend fun close() {
             scope.cancel()
-            storeScope.cancel()
+            storeScope.coroutineContext[Job]!!.cancelAndJoin()
         }
     }
 
