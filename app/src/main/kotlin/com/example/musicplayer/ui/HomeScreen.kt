@@ -45,6 +45,9 @@ fun HomeScreen(
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
     // An Album that a refresh removed (or that never came back after a restart) must not leave a stale id behind.
     LaunchedEffect(snapshot) { if (snapshot.loaded && openAlbum == null) openAlbumId = null }
+    var openArtistKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val openArtist = snapshot.artists.firstOrNull { it.key == openArtistKey }
+    LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {
@@ -67,6 +70,16 @@ fun HomeScreen(
                     },
                     onClose = { openAlbumId = null },
                 )
+            } else if (openArtist != null) {
+                ArtistDetailScreen(
+                    artist = openArtist,
+                    onPlay = { index ->
+                        player.playFrom(openArtist.tracks, index)
+                        onTrackPlayed()
+                    },
+                    onAlbumClick = { openAlbumId = it.key },
+                    onClose = { openArtistKey = null },
+                )
             } else {
                 PrimaryTabRow(selectedTabIndex = selected) {
                     HomeTab.entries.forEachIndexed { index, tab ->
@@ -84,6 +97,7 @@ fun HomeScreen(
                         },
                     )
                     HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
+                    HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Coming soon")
                     }
