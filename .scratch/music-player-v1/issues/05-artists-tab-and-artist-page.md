@@ -1,6 +1,7 @@
 # 05: Artists tab and Artist page
 
 Status: ready-for-agent
+Closed: 2026-10-13
 Blocked by: 04
 
 **What to build:** The Artists tab lists every **Artist**: the union of Track Artists and **Album Artists**, so "Various Artists" appears with its compilations. An Artist's page shows the Albums whose Album Artist is that Artist, plus every Track whose Artist is that Artist, including Tracks on compilations. Playing from the Artist page replaces the **Queue** with that Artist's Tracks.
@@ -15,3 +16,5 @@ Blocked by: 04
 ## Comments
 
 - 2026-10-13, review decisions (user): (1) Album row duplicated between ArtistsScreen and AlbumsScreen stays as is until a third copy. (2) Play button stays hidden for an Artist with no Tracks. (3) No UI tests for stale-open-Artist clearing or Album-to-Artist back navigation; covered by the real-device pass. Fixed in 93c1a2a: Artist name independent of Track order, pluralised counts, glossary entry. Instrumented tests (ArtistsTabTest) not run: no emulator.
+
+Closed 2026-10-13: merged in fong123452/MusicPlayer#5 (squash, 8256f19); `gate` CI was green. Instrumented tests (ArtistsTabTest) were never run: no emulator was available, so they are covered by the real-device check (ticket 13).
