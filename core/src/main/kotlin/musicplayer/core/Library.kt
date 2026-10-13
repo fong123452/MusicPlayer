@@ -57,7 +57,7 @@ class Library(private val source: TrackSource) {
     private fun albumKey(track: Track): String = when {
         track.albumArtist != null -> "artist:${track.album.lowercase()}\u0000${track.albumArtist.lowercase()}"
         track.albumId != null -> "id:${track.albumId}"
-        else -> "title:${track.album.lowercase()}"
+        else -> "track:${track.id}"
     }
 
     private fun creditFor(tracks: List<Track>): String =

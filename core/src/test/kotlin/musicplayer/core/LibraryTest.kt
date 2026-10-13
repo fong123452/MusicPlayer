@@ -221,4 +221,14 @@ class LibraryTest {
 
         assertEquals(1, library.snapshot.value.albums.size)
     }
+
+    @Test
+    fun `tracks with neither an Album Artist nor an album id do not merge into one Album`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "X", album = null),
+            rawTrack(2, artist = "Y", album = null),
+        )
+
+        assertEquals(2, library.snapshot.value.albums.size)
+    }
 }
