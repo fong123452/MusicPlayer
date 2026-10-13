@@ -129,4 +129,127 @@ class PlaylistsTest {
 
         assertEquals(listOf("Road trip"), lists.playlists.first().map { it.name })
     }
+
+    @Test
+    fun `moving a track changes the stored order and survives a new playlists instance`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(1), track(2), track(3)))
+
+        lists.move(id, from = 0, to = 2)
+
+        assertEquals(listOf(track(2), track(3), track(1)), playlists().current(id).tracks)
+    }
+
+    @Test
+    fun `moving outside the playlist or onto the same place changes nothing`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(1), track(2)))
+
+        lists.move(id, from = 0, to = 5)
+        lists.move(id, from = -1, to = 1)
+        lists.move(id, from = 1, to = 1)
+
+        assertEquals(listOf(track(1), track(2)), lists.current(id).tracks)
+    }
+
+    @Test
+    fun `removing a track takes it out of that playlist only`() = runTest {
+        val lists = playlists()
+        val a = lists.create("A")
+        val b = lists.create("B")
+        lists.add(a, listOf(track(1), track(2)))
+        lists.add(b, listOf(track(1)))
+
+        lists.remove(a, track(1))
+
+        assertEquals(listOf(track(2)), lists.current(a).tracks)
+        assertEquals(listOf(track(1)), lists.current(b).tracks)
+    }
+
+    @Test
+    fun `a removed track can be added again`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(1), track(2)))
+        lists.remove(id, track(1))
+
+        val result = lists.add(id, listOf(track(1)))
+
+        assertEquals(listOf(track(1)), result.added)
+        assertEquals(listOf(track(2), track(1)), lists.current(id).tracks)
+    }
+
+    @Test
+    fun `renaming a playlist trims the name and keeps its tracks`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(1)))
+
+        lists.rename(id, "  Road trip ")
+
+        assertEquals("Road trip", lists.current(id).name)
+        assertEquals(listOf(track(1)), lists.current(id).tracks)
+    }
+
+    @Test
+    fun `renaming to a blank name is rejected and keeps the old name`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+
+        assertFailsWith<IllegalArgumentException> { lists.rename(id, " ") }
+        assertEquals("Mix", lists.current(id).name)
+    }
+
+    @Test
+    fun `deleting a playlist leaves the others, and the library untouched`() = runTest {
+        val lists = playlists()
+        val a = lists.create("A")
+        val b = lists.create("B")
+        lists.add(a, listOf(track(1)))
+        lists.add(b, listOf(track(1)))
+
+        lists.delete(a)
+
+        assertEquals(listOf("B"), lists.playlists.first().map { it.name })
+        assertEquals(listOf(track(1)), lists.current(b).tracks)
+        assertEquals(6, library.snapshot.value.tracks.size)
+    }
+
+    @Test
+    fun `a library refresh that no longer has a track drops it from every playlist for good`() = runTest {
+        val lists = playlists()
+        val a = lists.create("A")
+        val b = lists.create("B")
+        lists.add(a, listOf(track(1), track(2)))
+        lists.add(b, listOf(track(1), track(3)))
+        val pruning = lists.pruneOnRefresh(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+
+        source.tracks = source.tracks.filter { it.id != 1L }
+        library.refresh()
+        // The file comes back (say, a restored backup): it must not reappear in the playlists.
+        source.tracks = source.tracks + rawTrack(1, title = "Alpha")
+        library.refresh()
+        pruning.cancel()
+
+        assertEquals(listOf(track(2)), lists.current(a).tracks)
+        assertEquals(listOf(track(3)), lists.current(b).tracks)
+    }
+
+    @Test
+    fun `a library that scanned as empty does not wipe the playlists`() = runTest {
+        val lists = playlists()
+        val id = lists.create("Mix")
+        lists.add(id, listOf(track(1)))
+        val pruning = lists.pruneOnRefresh(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+
+        source.tracks = emptyList()
+        library.refresh()
+        source.tracks = listOf(rawTrack(1, title = "Alpha"))
+        library.refresh()
+        pruning.cancel()
+
+        assertEquals(listOf(track(1)), lists.current(id).tracks)
+    }
 }

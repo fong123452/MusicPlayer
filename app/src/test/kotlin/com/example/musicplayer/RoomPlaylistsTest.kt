@@ -67,5 +67,50 @@ class RoomPlaylistsTest {
         assertEquals(listOf(1L, 2L, 3L), lists.playlists.first().single().tracks.map { it.id })
     }
 
+    @Test
+    fun `reorder, remove, rename and delete are stored and survive reopening`() = runBlocking {
+        val first = open()
+        val keep = first.create("Keep")
+        val drop = first.create("Drop")
+        first.add(keep, tracksOf(1, 2, 3))
+        first.add(drop, tracksOf(1))
+
+        first.move(keep, from = 2, to = 0)
+        first.remove(keep, tracksOf(1).single())
+        first.rename(keep, " Road trip ")
+        first.delete(drop)
+
+        val reopened = open().playlists.first()
+        assertEquals(listOf("Road trip"), reopened.map { it.name })
+        assertEquals(listOf(3L, 2L), reopened.single().tracks.map { it.id })
+    }
+
+    @Test
+    fun `a track added after a reorder lands at the end`() = runBlocking {
+        val lists = open()
+        val id = lists.create("Mix")
+        lists.add(id, tracksOf(1, 2))
+        lists.move(id, from = 1, to = 0)
+
+        lists.add(id, tracksOf(3))
+
+        assertEquals(listOf(2L, 1L, 3L), lists.playlists.first().single().tracks.map { it.id })
+    }
+
+    @Test
+    fun `retaining only some tracks deletes the other entries from every playlist`() = runBlocking {
+        val lists = open()
+        val store = RoomPlaylistStore(db!!.playlists())
+        val a = lists.create("A")
+        val b = lists.create("B")
+        lists.add(a, tracksOf(1, 2))
+        lists.add(b, tracksOf(1, 3))
+
+        store.retainOnly(setOf(2L, 3L))
+
+        // Read from the store itself: the Library still knows track 1, so only a real delete shows here.
+        assertEquals(listOf(listOf(2L), listOf(3L)), store.playlists.first().map { it.trackIds })
+    }
+
     private fun tracksOf(vararg ids: Long) = ids.map { id -> library.snapshot.value.tracks.first { it.id == id } }
 }
