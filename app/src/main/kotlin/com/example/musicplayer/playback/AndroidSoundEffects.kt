@@ -21,19 +21,29 @@ import kotlin.concurrent.thread
  * refuses to create is reported unsupported.
  */
 @Singleton
-class AndroidSoundEffects @Inject constructor(@ApplicationContext context: Context) : SoundEffects {
+class AndroidSoundEffects internal constructor(
+    private val factory: EffectFactory,
+    probeSession: Int,
+    runInBackground: (() -> Unit) -> Unit,
+) : SoundEffects {
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(
+        PlatformEffectFactory,
+        context.getSystemService(AudioManager::class.java).generateAudioSessionId(),
+        { block -> thread(name = "sound-effects-probe") { block() } },
+    )
+
     // Unsupported until the probe has run: it makes binder calls, so it stays off the main thread.
     private val supportState = MutableStateFlow(SoundSupport(presets = null, bassBoost = false))
     override val support: StateFlow<SoundSupport> = supportState
 
     private var settings = SoundSettings()
-    private var equalizer: Equalizer? = null
-    private var bassBoost: BassBoost? = null
+    private var equalizer: EqualizerHandle? = null
+    private var bassBoost: BassBoostHandle? = null
     private var sessionId = NO_SESSION
 
     init {
-        val probeSession = context.getSystemService(AudioManager::class.java).generateAudioSessionId()
-        thread(name = "sound-effects-probe") { supportState.value = probe(probeSession) }
+        runInBackground { supportState.value = probe(probeSession) }
     }
 
     @Synchronized
@@ -49,9 +59,9 @@ class AndroidSoundEffects @Inject constructor(@ApplicationContext context: Conte
         release()
         this.sessionId = sessionId
         if (sessionId == NO_SESSION) return
-        equalizer = create { Equalizer(0, sessionId) }
+        equalizer = create { factory.equalizer(sessionId) }
         if (equalizer == null) supportState.update { it.copy(presets = null) }
-        bassBoost = create { BassBoost(0, sessionId) }
+        bassBoost = create { factory.bassBoost(sessionId) }
         if (bassBoost == null) supportState.update { it.copy(bassBoost = false) }
         applyToEffects()
     }
@@ -60,11 +70,11 @@ class AndroidSoundEffects @Inject constructor(@ApplicationContext context: Conte
     private fun applyToEffects() {
         equalizer?.let { eq ->
             try {
-                val index = settings.preset?.let { name -> (0 until eq.numberOfPresets).firstOrNull { eq.getPresetName(it.toShort()) == name } }
+                val index = settings.preset?.let { name -> eq.presets.indexOf(name).takeIf { it >= 0 } }
                 if (index == null) {
                     eq.enabled = false
                 } else {
-                    eq.usePreset(index.toShort())
+                    eq.usePreset(index)
                     eq.enabled = true
                 }
             } catch (_: RuntimeException) {
@@ -99,10 +109,10 @@ class AndroidSoundEffects @Inject constructor(@ApplicationContext context: Conte
     }
 
     private fun probe(sessionId: Int): SoundSupport {
-        val eq = create { Equalizer(0, sessionId) }
-        val presets = eq?.let { e -> (0 until e.numberOfPresets).map { e.getPresetName(it.toShort()) } }
+        val eq = create { factory.equalizer(sessionId) }
+        val presets = eq?.presets
         eq?.release()
-        val boost = create { BassBoost(0, sessionId) }
+        val boost = create { factory.bassBoost(sessionId) }
         boost?.release()
         return SoundSupport(presets, bassBoost = boost != null)
     }
@@ -110,5 +120,56 @@ class AndroidSoundEffects @Inject constructor(@ApplicationContext context: Conte
     private companion object {
         const val NO_SESSION = 0
         const val BASS_BOOST_STRENGTH: Short = 800
+    }
+}
+
+/** The two audiofx effects, as far as [AndroidSoundEffects] uses them. Creating one throws when the device refuses. */
+internal interface EqualizerHandle {
+    val presets: List<String>
+    var enabled: Boolean
+
+    fun usePreset(index: Int)
+
+    fun release()
+}
+
+internal interface BassBoostHandle {
+    val strengthSupported: Boolean
+    var enabled: Boolean
+
+    fun setStrength(strength: Short)
+
+    fun release()
+}
+
+internal interface EffectFactory {
+    fun equalizer(sessionId: Int): EqualizerHandle
+
+    fun bassBoost(sessionId: Int): BassBoostHandle
+}
+
+private object PlatformEffectFactory : EffectFactory {
+    override fun equalizer(sessionId: Int): EqualizerHandle = object : EqualizerHandle {
+        private val eq = Equalizer(0, sessionId)
+        override val presets = (0 until eq.numberOfPresets).map { eq.getPresetName(it.toShort()) }
+        override var enabled: Boolean
+            get() = eq.enabled
+            set(value) { eq.enabled = value }
+
+        override fun usePreset(index: Int) = eq.usePreset(index.toShort())
+
+        override fun release() = eq.release()
+    }
+
+    override fun bassBoost(sessionId: Int): BassBoostHandle = object : BassBoostHandle {
+        private val boost = BassBoost(0, sessionId)
+        override val strengthSupported get() = boost.strengthSupported
+        override var enabled: Boolean
+            get() = boost.enabled
+            set(value) { boost.enabled = value }
+
+        override fun setStrength(strength: Short) = boost.setStrength(strength)
+
+        override fun release() = boost.release()
     }
 }
