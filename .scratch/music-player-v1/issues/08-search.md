@@ -1,6 +1,7 @@
 # 08: Search
 
 Status: ready-for-agent
+Closed: 2026-10-13
 Blocked by: 05
 
 **What to build:** A search screen, reached from Home, with one box that matches Track titles, Album titles and Artist names. The match is a case-insensitive substring match over the current **Library**. Results are grouped under Tracks, Albums and Artists. Tapping a Track result plays it, and tapping an Album or Artist result opens its page.
@@ -20,3 +21,5 @@ Review decisions (2026-10-13):
 - Duplicated album/artist rows across Search, Albums and Artists screens: left (O2); extraction is out of scope.
 - Trimmed query, Play next / Add to queue on search rows, and a Track tap queuing all matching Tracks: kept (O1), consistent with the other lists.
 - Instrumented tests compile but were not run: no emulator or device was available. QA in a running app is still outstanding.
+
+Closed: merged in https://github.com/fong123452/MusicPlayer/pull/10.
