@@ -108,6 +108,7 @@ fun HomeScreen(
                     onAddToQueue = player::addToQueue,
                     onAddToPlaylist = { pendingAdd = listOf(it) },
                     onAlbumClick = { openAlbumId = it.key },
+                    onAddAlbumToPlaylist = { pendingAdd = it.tracks },
                     onClose = { openArtistKey = null },
                 )
             } else if (showSearch) {
@@ -123,6 +124,7 @@ fun HomeScreen(
                     onAddToQueue = player::addToQueue,
                     onAddToPlaylist = { pendingAdd = listOf(it) },
                     onAlbumClick = { openAlbumId = it.key },
+                    onAddAlbumToPlaylist = { pendingAdd = it.tracks },
                     onArtistClick = { openArtistKey = it.key },
                     onClose = { showSearch = false; searchQuery = "" },
                 )
@@ -150,7 +152,11 @@ fun HomeScreen(
                         onAddToQueue = player::addToQueue,
                     onAddToPlaylist = { pendingAdd = listOf(it) },
                     )
-                    HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
+                    HomeTab.Albums -> AlbumsScreen(
+                        snapshot.albums,
+                        onAlbumClick = { openAlbumId = it.key },
+                        onAddToPlaylist = { pendingAdd = it.tracks },
+                    )
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
                     HomeTab.Playlists -> PlaylistsScreen(
                         playlists = playlists,
