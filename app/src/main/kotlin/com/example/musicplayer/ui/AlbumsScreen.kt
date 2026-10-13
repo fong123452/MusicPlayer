@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +32,12 @@ const val ALBUM_TRACKS_TAG = "album_tracks"
 const val PLAY_ALBUM_LABEL = "Play album"
 
 @Composable
-fun AlbumsScreen(albums: List<Album>, onAlbumClick: (Album) -> Unit, modifier: Modifier = Modifier) {
+fun AlbumsScreen(
+    albums: List<Album>,
+    onAlbumClick: (Album) -> Unit,
+    onAddToPlaylist: (Album) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(modifier.fillMaxSize().testTag(ALBUMS_LIST_TAG)) {
         items(albums, key = { it.key }) { album ->
             Row(
@@ -42,10 +48,11 @@ fun AlbumsScreen(albums: List<Album>, onAlbumClick: (Album) -> Unit, modifier: M
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AlbumArt(album.albumId, 56.dp, ROW_ART_PLACEHOLDER_TAG)
-                Column(Modifier.padding(start = 12.dp)) {
+                Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(album.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                     Text(album.albumArtist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
+                AlbumMenuButton { onAddToPlaylist(album) }
             }
         }
     }
@@ -57,6 +64,8 @@ fun AlbumDetailScreen(
     onPlay: (startIndex: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
+    onAddAlbumToPlaylist: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,6 +83,7 @@ fun AlbumDetailScreen(
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Text(PLAY_ALBUM_LABEL)
                 }
+                TextButton(onClick = onAddAlbumToPlaylist) { Text(ADD_TO_PLAYLIST_LABEL) }
             }
         }
         LazyColumn(Modifier.fillMaxSize().testTag(ALBUM_TRACKS_TAG)) {
@@ -83,6 +93,7 @@ fun AlbumDetailScreen(
                     onClick = { onPlay(index) },
                     onPlayNext = { onPlayNext(track) },
                     onAddToQueue = { onAddToQueue(track) },
+                    onAddToPlaylist = { onAddToPlaylist(track) },
                 )
             }
         }

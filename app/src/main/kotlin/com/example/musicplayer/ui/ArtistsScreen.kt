@@ -58,7 +58,9 @@ fun ArtistDetailScreen(
     onPlay: (startIndex: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     onAlbumClick: (Album) -> Unit,
+    onAddAlbumToPlaylist: (Album) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -88,7 +90,8 @@ fun ArtistDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AlbumArt(album.albumId, 56.dp, ROW_ART_PLACEHOLDER_TAG)
-                        Text(album.title, Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(album.title, Modifier.padding(start = 12.dp).weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        AlbumMenuButton { onAddAlbumToPlaylist(album) }
                     }
                 }
             }
@@ -100,6 +103,7 @@ fun ArtistDetailScreen(
                         onClick = { onPlay(index) },
                         onPlayNext = { onPlayNext(track) },
                         onAddToQueue = { onAddToQueue(track) },
+                        onAddToPlaylist = { onAddToPlaylist(track) },
                     )
                 }
             }

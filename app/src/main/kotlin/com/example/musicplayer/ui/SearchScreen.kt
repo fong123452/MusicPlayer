@@ -47,7 +47,9 @@ fun SearchScreen(
     onTrackClick: (results: List<Track>, index: Int) -> Unit,
     onPlayNext: (Track) -> Unit,
     onAddToQueue: (Track) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     onAlbumClick: (Album) -> Unit,
+    onAddAlbumToPlaylist: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -79,6 +81,7 @@ fun SearchScreen(
                             onClick = { onTrackClick(results.tracks, index) },
                             onPlayNext = { onPlayNext(track) },
                             onAddToQueue = { onAddToQueue(track) },
+                            onAddToPlaylist = { onAddToPlaylist(track) },
                         )
                     }
                 }
@@ -90,10 +93,11 @@ fun SearchScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             AlbumArt(album.albumId, 48.dp, ROW_ART_PLACEHOLDER_TAG)
-                            Column(Modifier.padding(start = 12.dp)) {
+                            Column(Modifier.padding(start = 12.dp).weight(1f)) {
                                 Text(album.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                                 Text(album.albumArtist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                             }
+                            AlbumMenuButton { onAddAlbumToPlaylist(album) }
                         }
                     }
                 }

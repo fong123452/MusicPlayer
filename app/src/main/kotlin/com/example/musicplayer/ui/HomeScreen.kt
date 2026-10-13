@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import musicplayer.core.Track
 
 enum class HomeTab(val label: String) {
     Tracks("Songs"),
@@ -40,6 +41,7 @@ enum class HomeTab(val label: String) {
 fun HomeScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     player: PlayerViewModel = hiltViewModel(),
+    playlistsViewModel: PlaylistsViewModel = hiltViewModel(),
     onTrackPlayed: () -> Unit = {},
 ) {
     val snapshot by viewModel.snapshot.collectAsState()
@@ -48,6 +50,14 @@ fun HomeScreen(
     val isPlaying by player.isPlaying.collectAsState()
     val shuffle by player.shuffle.collectAsState()
     val repeat by player.repeat.collectAsState()
+    val playlists by playlistsViewModel.playlists.collectAsState()
+    // Only ids are saved, so the dialog survives rotation; the Tracks are looked up again in the current Library.
+    var pendingIds by rememberSaveable { mutableStateOf<ArrayList<Long>?>(null) }
+    val pendingAdd = pendingIds?.let { ids ->
+        val byId = snapshot.tracks.associateBy { it.id }
+        ids.mapNotNull(byId::get)
+    }
+    fun addToPlaylist(tracks: List<Track>) { pendingIds = ArrayList(tracks.map { it.id }) }
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
@@ -69,6 +79,12 @@ fun HomeScreen(
             launch { snackbarHost.showSnackbar("Couldn't play $title, skipped") }
         }
     }
+    LaunchedEffect(playlistsViewModel) {
+        playlistsViewModel.messages.collect { message ->
+            snackbarHost.currentSnackbarData?.dismiss()
+            launch { snackbarHost.showSnackbar(message) }
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -82,6 +98,8 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
+                    onAddAlbumToPlaylist = { addToPlaylist(openAlbum.tracks) },
                     onClose = { openAlbumId = null },
                 )
             } else if (openArtist != null) {
@@ -93,7 +111,9 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     onAlbumClick = { openAlbumId = it.key },
+                    onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onClose = { openArtistKey = null },
                 )
             } else if (showSearch) {
@@ -107,7 +127,9 @@ fun HomeScreen(
                     },
                     onPlayNext = player::playNext,
                     onAddToQueue = player::addToQueue,
+                    onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     onAlbumClick = { openAlbumId = it.key },
+                    onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onArtistClick = { openArtistKey = it.key },
                     onClose = { showSearch = false; searchQuery = "" },
                 )
@@ -133,12 +155,21 @@ fun HomeScreen(
                         },
                         onPlayNext = player::playNext,
                         onAddToQueue = player::addToQueue,
+                        onAddToPlaylist = { addToPlaylist(listOf(it)) },
                     )
-                    HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
+                    HomeTab.Albums -> AlbumsScreen(
+                        snapshot.albums,
+                        onAlbumClick = { openAlbumId = it.key },
+                        onAddToPlaylist = { addToPlaylist(it.tracks) },
+                    )
                     HomeTab.Artists -> ArtistsScreen(snapshot.artists, onArtistClick = { openArtistKey = it.key })
-                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Coming soon")
-                    }
+                    HomeTab.Playlists -> PlaylistsScreen(
+                        playlists = playlists,
+                        onPlay = { playlist ->
+                            if (playlistsViewModel.play(playlist)) onTrackPlayed()
+                        },
+                        onCreate = playlistsViewModel::create,
+                    )
                 }
             }
         }
@@ -161,6 +192,20 @@ fun HomeScreen(
                     onClose = { showNowPlaying = false },
                 )
             }
+        }
+        pendingAdd?.let { tracks ->
+            AddToPlaylistDialog(
+                playlists = playlists,
+                onPick = { playlist ->
+                    playlistsViewModel.add(playlist, tracks)
+                    pendingIds = null
+                },
+                onCreate = { name ->
+                    playlistsViewModel.createAndAdd(name, tracks)
+                    pendingIds = null
+                },
+                onDismiss = { pendingIds = null },
+            )
         }
         SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter))
     }
