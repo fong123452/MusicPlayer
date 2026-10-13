@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import musicplayer.core.SoundSettings
 import musicplayer.core.Track
 
 enum class HomeTab(val label: String) {
@@ -44,6 +45,7 @@ fun HomeScreen(
     player: PlayerViewModel = hiltViewModel(),
     playlistsViewModel: PlaylistsViewModel = hiltViewModel(),
     themeViewModel: ThemeViewModel = hiltViewModel(),
+    soundViewModel: SoundViewModel = hiltViewModel(),
     onTrackPlayed: () -> Unit = {},
 ) {
     val snapshot by viewModel.snapshot.collectAsState()
@@ -74,6 +76,8 @@ fun HomeScreen(
     val playlistsLoaded by playlistsViewModel.loaded.collectAsState()
     LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) openPlaylistId = null }
     val theme by themeViewModel.theme.collectAsState()
+    val sound by soundViewModel.settings.collectAsState()
+    val soundSupport by soundViewModel.support.collectAsState()
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -139,12 +143,16 @@ fun HomeScreen(
                     onRemove = { playlistsViewModel.remove(openPlaylist, it) },
                     onClose = { openPlaylistId = null },
                 )
-            } else if (showSettings && theme != null) {
-                theme?.let {
+            } else if (showSettings && theme != null && sound != null) {
+                theme?.let { currentTheme ->
                     SettingsScreen(
-                        theme = it,
+                        theme = currentTheme,
                         onModeChange = themeViewModel::setMode,
                         onAccentChange = themeViewModel::setAccent,
+                        sound = sound ?: SoundSettings(),
+                        soundSupport = soundSupport,
+                        onPresetChange = soundViewModel::setPreset,
+                        onBassBoostChange = soundViewModel::setBassBoost,
                         onClose = { showSettings = false },
                     )
                 }

@@ -23,8 +23,13 @@ import musicplayer.core.PlaylistStore
 import musicplayer.core.Playlists
 import musicplayer.core.Queue
 import musicplayer.core.ThemeStore
-import musicplayer.core.DataStoreThemeStore
+import musicplayer.core.DataStoreSoundStore
+import musicplayer.core.Sound
+import musicplayer.core.SoundEffects
+import musicplayer.core.SoundStore
 import musicplayer.core.themeDataStore
+import com.example.musicplayer.playback.AndroidSoundEffects
+import musicplayer.core.DataStoreThemeStore
 import musicplayer.core.TrackSource
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -52,6 +57,11 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun sound(store: SoundStore, effects: SoundEffects, engine: PlaybackEngine, @ApplicationScope scope: CoroutineScope): Sound =
+        Sound(store, effects, engine.isPlaying, scope)
+
+    @Provides
+    @Singleton
     @ApplicationScope
     fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 }
@@ -65,6 +75,9 @@ interface DeviceModule {
 
     @Binds
     fun playbackEngine(impl: ControllerPlaybackEngine): PlaybackEngine
+
+    @Binds
+    fun soundEffects(impl: AndroidSoundEffects): SoundEffects
 
     @Binds
     fun audioPermission(impl: AndroidAudioPermission): AudioPermission
@@ -85,4 +98,9 @@ object StorageModule {
     @Singleton
     fun themeStore(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): ThemeStore =
         DataStoreThemeStore(themeDataStore(scope, context.filesDir.resolve("datastore/theme.preferences_pb")))
+
+    @Provides
+    @Singleton
+    fun soundStore(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): SoundStore =
+        DataStoreSoundStore(themeDataStore(scope, context.filesDir.resolve("datastore/sound.preferences_pb")))
 }

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -19,9 +20,12 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
     @Inject lateinit var queue: Lazy<Queue>
+    @Inject lateinit var soundEffects: AndroidSoundEffects
 
     private var session: MediaSession? = null
 
+    // The audio session id is how the effects find the player; Media3 still marks that API unstable.
+    @androidx.annotation.OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this)
@@ -40,6 +44,10 @@ class PlaybackService : MediaSessionService() {
                 repeatMode = Player.REPEAT_MODE_OFF
                 shuffleModeEnabled = false
             }
+        player.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) = soundEffects.attach(audioSessionId)
+        })
+        soundEffects.attach(player.audioSessionId)
         session = MediaSession.Builder(this, QueueForwardingPlayer(player, queue::get)).build()
     }
 
@@ -56,6 +64,7 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         session = null
+        soundEffects.attach(0)
         super.onDestroy()
     }
 }
