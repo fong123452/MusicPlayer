@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ fun HomeScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     player: PlayerViewModel = hiltViewModel(),
     playlistsViewModel: PlaylistsViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel(),
     onTrackPlayed: () -> Unit = {},
 ) {
     val snapshot by viewModel.snapshot.collectAsState()
@@ -71,6 +73,8 @@ fun HomeScreen(
     // A Playlist that was deleted must not leave a stale id behind. Playlists load asynchronously, so wait for them.
     val playlistsLoaded by playlistsViewModel.loaded.collectAsState()
     LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) openPlaylistId = null }
+    val theme by themeViewModel.theme.collectAsState()
+    var showSettings by rememberSaveable { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
@@ -135,6 +139,13 @@ fun HomeScreen(
                     onRemove = { playlistsViewModel.remove(openPlaylist, it) },
                     onClose = { openPlaylistId = null },
                 )
+            } else if (showSettings && theme != null) {
+                SettingsScreen(
+                    theme = theme!!,
+                    onModeChange = themeViewModel::setMode,
+                    onAccentChange = themeViewModel::setAccent,
+                    onClose = { showSettings = false },
+                )
             } else if (showSearch) {
                 SearchScreen(
                     snapshot = snapshot,
@@ -162,6 +173,7 @@ fun HomeScreen(
                     IconButton(onClick = { showSearch = true }) {
                         Icon(Icons.Filled.Search, contentDescription = SEARCH_DESCRIPTION)
                     }
+                    TextButton(onClick = { showSettings = true }) { Text(SETTINGS_LABEL) }
                 }
                 when (HomeTab.entries[selected]) {
                     HomeTab.Tracks -> TracksScreen(
