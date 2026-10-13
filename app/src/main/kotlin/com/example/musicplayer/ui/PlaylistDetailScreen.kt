@@ -48,6 +48,7 @@ fun PlaylistDetailScreen(
     onDelete: () -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
     onRemove: (Track) -> Unit,
+    onAddSongs: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -66,6 +67,7 @@ fun PlaylistDetailScreen(
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Text(PLAY_PLAYLIST_LABEL)
                 }
+                TextButton(onClick = onAddSongs) { Text(ADD_SONGS_LABEL) }
                 TextButton(onClick = { renaming = true }) { Text(RENAME_LABEL) }
                 TextButton(onClick = { confirmingDelete = true }) { Text(DELETE_LABEL) }
             }

@@ -69,10 +69,11 @@ fun HomeScreen(
     val openArtist = snapshot.artists.firstOrNull { it.key == openArtistKey }
     LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
     var openPlaylistId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var addingSongs by rememberSaveable { mutableStateOf(false) }
     val openPlaylist = playlists.firstOrNull { it.id == openPlaylistId }
     // A Playlist that was deleted must not leave a stale id behind. Playlists load asynchronously, so wait for them.
     val playlistsLoaded by playlistsViewModel.loaded.collectAsState()
-    LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) openPlaylistId = null }
+    LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) { openPlaylistId = null; addingSongs = false } }
     val theme by themeViewModel.theme.collectAsState()
     val sound by soundViewModel.settings.collectAsState()
     val soundSupport by soundViewModel.support.collectAsState()
@@ -127,6 +128,16 @@ fun HomeScreen(
                     onAddAlbumToPlaylist = { addToPlaylist(it.tracks) },
                     onClose = { openArtistKey = null },
                 )
+            } else if (openPlaylist != null && addingSongs) {
+                AddSongsScreen(
+                    snapshot = snapshot,
+                    alreadyIn = openPlaylist.tracks.mapTo(HashSet()) { it.id },
+                    onDone = { picked ->
+                        if (picked.isNotEmpty()) playlistsViewModel.add(openPlaylist, picked)
+                        addingSongs = false
+                    },
+                    onClose = { addingSongs = false },
+                )
             } else if (openPlaylist != null) {
                 PlaylistDetailScreen(
                     playlist = openPlaylist,
@@ -139,6 +150,7 @@ fun HomeScreen(
                     onDelete = { playlistsViewModel.delete(openPlaylist) },
                     onMove = { from, to -> playlistsViewModel.move(openPlaylist, from, to) },
                     onRemove = { playlistsViewModel.remove(openPlaylist, it) },
+                    onAddSongs = { addingSongs = true },
                     onClose = { openPlaylistId = null },
                 )
             } else if (showSettings && theme != null && sound != null) {
