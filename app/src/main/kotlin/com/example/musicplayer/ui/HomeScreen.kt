@@ -24,19 +24,34 @@ enum class HomeTab(val label: String) {
 }
 
 @Composable
-fun HomeScreen(viewModel: LibraryViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: LibraryViewModel = hiltViewModel(),
+    player: PlayerViewModel = hiltViewModel(),
+    onTrackPlayed: () -> Unit = {},
+) {
     val snapshot by viewModel.snapshot.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val queueState by player.queueState.collectAsState()
+    val isPlaying by player.isPlaying.collectAsState()
     var selected by rememberSaveable { mutableIntStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
+        queueState.current?.let { MiniPlayer(it, isPlaying, player::togglePlayPause) }
         PrimaryTabRow(selectedTabIndex = selected) {
             HomeTab.entries.forEachIndexed { index, tab ->
                 Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
             }
         }
         when (HomeTab.entries[selected]) {
-            HomeTab.Songs -> SongsScreen(snapshot = snapshot, isRefreshing = isRefreshing, onRefresh = viewModel::refresh)
+            HomeTab.Songs -> SongsScreen(
+                snapshot = snapshot,
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::refresh,
+                onTrackClick = { index ->
+                    player.playFrom(snapshot.tracks, index)
+                    onTrackPlayed()
+                },
+            )
             else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Coming soon")
             }

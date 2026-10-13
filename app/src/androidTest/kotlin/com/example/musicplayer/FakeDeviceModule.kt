@@ -6,7 +6,9 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
+import musicplayer.core.FakePlaybackEngine
 import musicplayer.core.FakeTrackSource
+import musicplayer.core.PlaybackEngine
 import musicplayer.core.TrackSource
 import javax.inject.Singleton
 
@@ -33,4 +35,11 @@ object FakeDeviceModule {
 
     @Provides
     fun audioPermission(fake: FakeAudioPermission): AudioPermission = fake
+
+    @Provides
+    @Singleton
+    fun fakePlaybackEngine() = FakePlaybackEngine()
+
+    @Provides
+    fun playbackEngine(fake: FakePlaybackEngine): PlaybackEngine = fake
 }

@@ -1,8 +1,13 @@
 package com.example.musicplayer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -22,6 +27,19 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject lateinit var audioPermission: AudioPermission
 
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private var askedForNotifications = false
+
+    /** Without this on API 33+ the media notification is hidden, though playback still works. */
+    private fun requestNotificationPermissionOnce() {
+        if (askedForNotifications || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        askedForNotifications = true
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -35,7 +53,7 @@ class MainActivity : ComponentActivity() {
                             val viewModel: LibraryViewModel = hiltViewModel()
                             // Covers the moment the permission is first granted from the gate.
                             LaunchedEffect(Unit) { viewModel.refresh() }
-                            HomeScreen(viewModel)
+                            HomeScreen(viewModel, onTrackPlayed = ::requestNotificationPermissionOnce)
                         }
                     }
                 }

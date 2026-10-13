@@ -1,11 +1,13 @@
 package com.example.musicplayer.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +30,7 @@ fun SongsScreen(
     snapshot: LibrarySnapshot,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onTrackClick: (index: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = modifier.fillMaxSize()) {
@@ -41,8 +44,13 @@ fun SongsScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().testTag(SONGS_LIST_TAG)) {
-                items(snapshot.tracks, key = { it.id }) { track ->
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                itemsIndexed(snapshot.tracks, key = { _, track -> track.id }) { index, track ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onTrackClick(index) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
                         Text(track.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                         Text(
                             "${track.artist} • ${track.album}",
