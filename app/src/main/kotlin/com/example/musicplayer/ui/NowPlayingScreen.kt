@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import musicplayer.core.QueueState
+import musicplayer.core.RepeatMode
 import musicplayer.core.Track
 import kotlin.math.roundToInt
 
@@ -53,6 +55,8 @@ const val PREVIOUS_DESCRIPTION = "Previous"
 const val REMOVE_FROM_QUEUE_DESCRIPTION = "Remove from queue"
 const val REORDER_DESCRIPTION = "Reorder"
 const val BACK_DESCRIPTION = "Back"
+const val SHUFFLE_TAG = "shuffle"
+const val REPEAT_TAG = "repeat"
 
 private const val POSITION_POLL_MS = 500L
 
@@ -64,6 +68,10 @@ fun NowPlayingScreen(
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
+    shuffle: Boolean,
+    repeat: RepeatMode,
+    onToggleShuffle: () -> Unit,
+    onCycleRepeat: () -> Unit,
     onSeek: (Long) -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
     onRemove: (index: Int) -> Unit,
@@ -80,6 +88,7 @@ fun NowPlayingScreen(
             Header(track)
             SeekBar(track, isPlaying, positionMs, onSeek)
             Controls(isPlaying, onTogglePlayPause, onNext, onPrevious)
+            ModeButtons(shuffle, repeat, onToggleShuffle, onCycleRepeat)
         }
         QueueList(queueState, onMove, onRemove, Modifier.weight(1f))
     }
@@ -147,6 +156,18 @@ private fun Controls(isPlaying: Boolean, onTogglePlayPause: () -> Unit, onNext: 
         IconButton(onClick = onNext) {
             Icon(SkipNextIcon, contentDescription = NEXT_DESCRIPTION)
         }
+    }
+}
+
+internal fun shuffleLabel(on: Boolean) = if (on) "Shuffle: On" else "Shuffle: Off"
+
+internal fun repeatLabel(mode: RepeatMode) = "Repeat: $mode"
+
+@Composable
+private fun ModeButtons(shuffle: Boolean, repeat: RepeatMode, onToggleShuffle: () -> Unit, onCycleRepeat: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = onToggleShuffle, modifier = Modifier.testTag(SHUFFLE_TAG)) { Text(shuffleLabel(shuffle)) }
+        TextButton(onClick = onCycleRepeat, modifier = Modifier.testTag(REPEAT_TAG)) { Text(repeatLabel(repeat)) }
     }
 }
 

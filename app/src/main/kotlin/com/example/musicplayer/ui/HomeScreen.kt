@@ -40,6 +40,8 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val queueState by player.queueState.collectAsState()
     val isPlaying by player.isPlaying.collectAsState()
+    val shuffle by player.shuffle.collectAsState()
+    val repeat by player.repeat.collectAsState()
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
     val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
@@ -121,6 +123,10 @@ fun HomeScreen(
                     onTogglePlayPause = player::togglePlayPause,
                     onNext = player::next,
                     onPrevious = player::previous,
+                    shuffle = shuffle,
+                    repeat = repeat,
+                    onToggleShuffle = player::toggleShuffle,
+                    onCycleRepeat = player::cycleRepeat,
                     onSeek = player::seekTo,
                     onMove = player::moveInQueue,
                     onRemove = player::removeFromQueue,

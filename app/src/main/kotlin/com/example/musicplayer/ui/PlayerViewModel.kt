@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import musicplayer.core.Queue
 import musicplayer.core.QueueState
+import musicplayer.core.RepeatMode
 import musicplayer.core.Track
 import javax.inject.Inject
 
@@ -15,6 +16,8 @@ class PlayerViewModel @Inject constructor(
 ) : ViewModel() {
     val queueState: StateFlow<QueueState> = queue.queue
     val isPlaying: StateFlow<Boolean> = queue.isPlaying
+    val shuffle: StateFlow<Boolean> = queue.shuffle
+    val repeat: StateFlow<RepeatMode> = queue.repeat
 
     /** Titles of Tracks that failed to play and were skipped, one per failure. */
     val skipped: Flow<String> = queue.skipped
@@ -28,6 +31,10 @@ class PlayerViewModel @Inject constructor(
     fun moveInQueue(from: Int, to: Int) = queue.move(from, to)
 
     fun removeFromQueue(index: Int) = queue.remove(index)
+
+    fun toggleShuffle() = queue.setShuffle(!queue.shuffle.value)
+
+    fun cycleRepeat() = queue.cycleRepeat()
 
     fun togglePlayPause() = if (queue.isPlaying.value) queue.pause() else queue.play()
 

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 data class QueueState(val tracks: List<Track>, val currentIndex: Int) {
     val current: Track? get() = tracks.getOrNull(currentIndex)
@@ -15,10 +16,29 @@ data class QueueState(val tracks: List<Track>, val currentIndex: Int) {
 /** Past this position, previous restarts the current Track instead of leaving it. */
 const val RESTART_THRESHOLD_MS = 3_000L
 
+/** What happens when a Track or the Queue ends. */
+enum class RepeatMode { Off, All, One }
+
 /** The ordered Tracks that play now. It drives the [PlaybackEngine] one Track at a time. */
-class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
+class Queue(private val engine: PlaybackEngine, scope: CoroutineScope, private val random: Random = Random.Default) {
+    // A queued Track, by identity: the same Track can be queued twice, and shuffle must tell the copies apart.
+    private class Entry(val track: Track)
+
+    private var entries: List<Entry> = emptyList()
+
+    // The Queue in the order it was given, plus later additions; shuffle off returns to it.
+    private var original: List<Entry> = emptyList()
+
     private val state = MutableStateFlow(QueueState(emptyList(), -1))
     val queue: StateFlow<QueueState> = state
+
+    private val shuffleState = MutableStateFlow(false)
+    val shuffle: StateFlow<Boolean> = shuffleState
+
+    private val repeatState = MutableStateFlow(RepeatMode.Off)
+    val repeat: StateFlow<RepeatMode> = repeatState
+
+    private var failures = 0
     val isPlaying: StateFlow<Boolean> = engine.isPlaying
 
     private var ranOut = false
@@ -48,7 +68,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             engine.events.collect { event ->
                 when (event) {
-                    PlaybackEvent.Completed -> next()
+                    PlaybackEvent.Completed -> completed()
                     is PlaybackEvent.Error -> skipCurrent()
                     PlaybackEvent.ConnectionFailed -> Unit
                 }
@@ -58,8 +78,33 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
 
     /** Replaces the Queue with [tracks] and starts playing the Track at [startIndex]. */
     fun replace(tracks: List<Track>, startIndex: Int) {
-        state.value = QueueState(tracks, startIndex)
+        failures = 0
+        original = tracks.map(::Entry)
+        entries = original
+        publish(startIndex)
+        if (shuffleState.value) shuffleKeepingCurrent()
         loadCurrentAndPlay()
+    }
+
+    /** Turning shuffle on keeps the current Track first and shuffles the rest; off restores the given order. */
+    fun setShuffle(on: Boolean) {
+        if (on == shuffleState.value) return
+        shuffleState.value = on
+        if (on) {
+            shuffleKeepingCurrent()
+        } else {
+            val current = currentEntry()
+            entries = original
+            publish(if (current == null) -1 else entries.indexOf(current))
+        }
+    }
+
+    fun cycleRepeat() {
+        repeatState.value = when (repeatState.value) {
+            RepeatMode.Off -> RepeatMode.All
+            RepeatMode.All -> RepeatMode.One
+            RepeatMode.One -> RepeatMode.Off
+        }
     }
 
     /** Resumes; once the Queue has run out, plays the current Track again, since the engine cannot resume from its end. */
@@ -78,19 +123,31 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
 
     fun positionMs(): Long = engine.currentPositionMs()
 
-    /** Moves to the next Track; on the last Track playback stops. */
+    /** Moves to the next Track; on the last Track it wraps to the first under Repeat All, otherwise playback stops. */
     fun next() {
+        failures = 0
+        advance()
+    }
+
+    private fun advance() {
         val s = state.value
-        if (s.currentIndex + 1 > s.tracks.lastIndex) {
-            stopPlayback()
-            return
+        val target = when {
+            s.currentIndex + 1 <= s.tracks.lastIndex -> s.currentIndex + 1
+            repeatState.value == RepeatMode.All && s.tracks.isNotEmpty() -> 0
+            else -> return stopPlayback()
         }
-        state.value = s.copy(currentIndex = s.currentIndex + 1)
+        state.value = s.copy(currentIndex = target)
         loadCurrentAndPlay()
+    }
+
+    private fun completed() {
+        failures = 0
+        if (repeatState.value == RepeatMode.One) loadCurrentAndPlay() else advance()
     }
 
     /** Restarts the current Track once it has played past [RESTART_THRESHOLD_MS], otherwise moves back. */
     fun previous(positionMs: Long) {
+        failures = 0
         val s = state.value
         if (positionMs > RESTART_THRESHOLD_MS || s.currentIndex <= 0) {
             engine.seekTo(0)
@@ -104,29 +161,35 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun playNext(track: Track) {
         val s = state.value
         if (s.tracks.isEmpty()) return replace(listOf(track), 0)
-        val at = s.currentIndex + 1
-        state.value = s.copy(tracks = s.tracks.toMutableList().apply { add(at, track) })
+        val entry = Entry(track)
+        entries = entries.toMutableList().apply { add(s.currentIndex + 1, entry) }
+        original = original.toMutableList().apply { add(indexOf(currentEntry()) + 1, entry) }
+        publish(s.currentIndex)
     }
 
     /** Appends [track] to the end; on an empty Queue it starts playing. */
     fun addToEnd(track: Track) {
         val s = state.value
         if (s.tracks.isEmpty()) return replace(listOf(track), 0)
-        state.value = s.copy(tracks = s.tracks + track)
+        val entry = Entry(track)
+        entries = entries + entry
+        original = original + entry
+        publish(s.currentIndex)
     }
 
     /** Moves the Track at [from] to [to]. The current Track keeps playing; indices outside the Queue are ignored. */
     fun move(from: Int, to: Int) {
         val s = state.value
         if (from !in s.tracks.indices || to !in s.tracks.indices || from == to) return
-        val tracks = s.tracks.toMutableList().apply { add(to, removeAt(from)) }
+        entries = entries.toMutableList().apply { add(to, removeAt(from)) }
+        if (!shuffleState.value) original = entries // a reorder is the new given order; shuffled moves stay out of it
         val current = when {
             s.currentIndex == from -> to
             from < s.currentIndex && to >= s.currentIndex -> s.currentIndex - 1
             from > s.currentIndex && to <= s.currentIndex -> s.currentIndex + 1
             else -> s.currentIndex
         }
-        state.value = QueueState(tracks, current)
+        publish(current)
     }
 
     /**
@@ -136,22 +199,26 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun remove(index: Int) {
         val s = state.value
         if (index !in s.tracks.indices) return
-        val tracks = s.tracks.toMutableList().apply { removeAt(index) }
+        failures = 0
+        val removed = entries[index]
+        entries = entries.toMutableList().apply { removeAt(index) }
+        original = original - removed
+        val lastIndex = entries.lastIndex
         when {
-            index < s.currentIndex -> state.value = QueueState(tracks, s.currentIndex - 1)
-            index > s.currentIndex -> state.value = s.copy(tracks = tracks)
-            tracks.isEmpty() -> {
-                state.value = QueueState(emptyList(), -1)
+            index < s.currentIndex -> publish(s.currentIndex - 1)
+            index > s.currentIndex -> publish(s.currentIndex)
+            entries.isEmpty() -> {
+                publish(-1)
                 stopPlayback()
             }
-            index > tracks.lastIndex -> {
+            index > lastIndex -> {
                 // Nothing follows: the last remaining Track becomes current, paused, so the Queue stays reachable.
-                state.value = QueueState(tracks, tracks.lastIndex)
+                publish(lastIndex)
                 loadCurrentPaused()
             }
             else -> {
                 val resume = wantsPlay
-                state.value = QueueState(tracks, index)
+                publish(index)
                 if (resume) loadCurrentAndPlay() else loadCurrentPaused()
             }
         }
@@ -166,7 +233,21 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     private fun skipCurrent() {
         val failed = state.value.current ?: return
         skippedEvents.tryEmit(failed.title)
-        next()
+        // Under Repeat All, a Queue where every Track fails would otherwise skip around it forever.
+        if (++failures >= entries.size) return stopPlayback()
+        advance()
+    }
+
+    private fun currentEntry(): Entry? = entries.getOrNull(state.value.currentIndex)
+
+    private fun publish(currentIndex: Int) {
+        state.value = QueueState(entries.map { it.track }, currentIndex)
+    }
+
+    private fun shuffleKeepingCurrent() {
+        val current = currentEntry() ?: return
+        entries = listOf(current) + (entries - current).shuffled(random)
+        publish(0)
     }
 
     private fun loadCurrentPaused() {
