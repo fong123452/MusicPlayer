@@ -7,6 +7,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import musicplayer.core.Queue
 import javax.inject.Inject
@@ -17,7 +18,7 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
-    @Inject lateinit var queue: dagger.Lazy<Queue>
+    @Inject lateinit var queue: Lazy<Queue>
 
     private var session: MediaSession? = null
 

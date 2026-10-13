@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +44,11 @@ fun HomeScreen(
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {
-        player.skipped.collect { title -> snackbarHost.showSnackbar("Couldn't play $title, skipped") }
+        // Each message gets its own coroutine, so a new failure replaces the one on screen instead of queueing behind it.
+        player.skipped.collect { title ->
+            snackbarHost.currentSnackbarData?.dismiss()
+            launch { snackbarHost.showSnackbar("Couldn't play $title, skipped") }
+        }
     }
 
     Box(Modifier.fillMaxSize()) {

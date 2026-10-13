@@ -44,7 +44,7 @@ class ControllerPlaybackEngine @Inject constructor(
         },
         executor = mainExecutor,
         onConnected = ::onConnected,
-        onFailure = { eventFlow.tryEmit(PlaybackEvent.Error(it.message)) },
+        onFailure = { eventFlow.tryEmit(PlaybackEvent.ConnectionFailed) },
     )
 
     init {

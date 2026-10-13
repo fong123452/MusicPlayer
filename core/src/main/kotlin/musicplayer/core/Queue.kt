@@ -21,6 +21,8 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     val queue: StateFlow<QueueState> = state
     val isPlaying: StateFlow<Boolean> = engine.isPlaying
 
+    private var ranOut = false
+
     private val skippedEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
 
     /** One-shot: the title of each Track that could not play and was skipped. */
@@ -32,6 +34,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
                 when (event) {
                     PlaybackEvent.Completed -> next()
                     is PlaybackEvent.Error -> skipCurrent()
+                    PlaybackEvent.ConnectionFailed -> Unit
                 }
             }
         }
@@ -43,7 +46,8 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
         loadCurrentAndPlay()
     }
 
-    fun play() = engine.play()
+    /** Resumes; once the Queue has run out, plays the current Track again, since the engine cannot resume from its end. */
+    fun play() = if (ranOut) loadCurrentAndPlay() else engine.play()
 
     fun pause() = engine.pause()
 
@@ -55,6 +59,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
     fun next() {
         val s = state.value
         if (s.currentIndex + 1 > s.tracks.lastIndex) {
+            ranOut = true
             engine.pause()
             return
         }
@@ -81,6 +86,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
 
     private fun loadCurrentAndPlay() {
         val track = state.value.current ?: return
+        ranOut = false
         engine.load(track)
         engine.play()
     }

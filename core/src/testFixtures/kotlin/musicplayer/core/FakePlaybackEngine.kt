@@ -33,6 +33,11 @@ class FakePlaybackEngine : PlaybackEngine {
         eventFlow.tryEmit(PlaybackEvent.Completed)
     }
 
+    fun failConnection() {
+        playing.value = false
+        eventFlow.tryEmit(PlaybackEvent.ConnectionFailed)
+    }
+
     fun fail(message: String? = null) {
         playing.value = false
         eventFlow.tryEmit(PlaybackEvent.Error(message))

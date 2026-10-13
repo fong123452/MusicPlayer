@@ -159,4 +159,42 @@ class QueueTest {
         assertFalse(queue.isPlaying.value)
         assertEquals(listOf("T3"), skipped)
     }
+
+    @Test
+    fun `play after the queue ran out plays the last track again`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        engine.complete()
+
+        queue.play()
+
+        assertEquals(tracks[2], queue.queue.value.current)
+        assertEquals(2, engine.loaded.size)
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `play after a pause resumes without reloading`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        queue.pause()
+
+        queue.play()
+
+        assertEquals(1, engine.loaded.size)
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `a failed connection to the player does not skip tracks`() = runTest {
+        val queue = queueOf()
+        val skipped = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { queue.skipped.collect { skipped += it } }
+        queue.replace(tracks, startIndex = 0)
+
+        engine.failConnection()
+
+        assertEquals(tracks[0], queue.queue.value.current)
+        assertEquals(emptyList(), skipped)
+    }
 }

@@ -29,9 +29,9 @@ internal class QueueForwardingPlayer(player: Player, private val queue: () -> Qu
 
     override fun seekToNext() = queue().next()
 
-    override fun seekToNextMediaItem() = queue().next()
+    override fun seekToNextMediaItem() = seekToNext()
 
     override fun seekToPrevious() = queue().previous(currentPosition)
 
-    override fun seekToPreviousMediaItem() = queue().previous(currentPosition)
+    override fun seekToPreviousMediaItem() = seekToPrevious()
 }
