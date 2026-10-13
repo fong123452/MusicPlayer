@@ -2,7 +2,13 @@ package com.example.musicplayer.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +56,8 @@ fun HomeScreen(
     var openArtistKey by rememberSaveable { mutableStateOf<String?>(null) }
     val openArtist = snapshot.artists.firstOrNull { it.key == openArtistKey }
     LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     // With nothing current, Now Playing is hidden; clear the flag so it does not reappear when a Track is queued later.
     LaunchedEffect(queueState.current == null) { if (queueState.current == null) showNowPlaying = false }
@@ -88,10 +96,30 @@ fun HomeScreen(
                     onAlbumClick = { openAlbumId = it.key },
                     onClose = { openArtistKey = null },
                 )
+            } else if (showSearch) {
+                SearchScreen(
+                    snapshot = snapshot,
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onTrackClick = { results, index ->
+                        player.playFrom(results, index)
+                        onTrackPlayed()
+                    },
+                    onPlayNext = player::playNext,
+                    onAddToQueue = player::addToQueue,
+                    onAlbumClick = { openAlbumId = it.key },
+                    onArtistClick = { openArtistKey = it.key },
+                    onClose = { showSearch = false; searchQuery = "" },
+                )
             } else {
-                PrimaryTabRow(selectedTabIndex = selected) {
-                    HomeTab.entries.forEachIndexed { index, tab ->
-                        Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    PrimaryTabRow(selectedTabIndex = selected, modifier = Modifier.weight(1f)) {
+                        HomeTab.entries.forEachIndexed { index, tab ->
+                            Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
+                        }
+                    }
+                    IconButton(onClick = { showSearch = true }) {
+                        Icon(Icons.Filled.Search, contentDescription = SEARCH_DESCRIPTION)
                     }
                 }
                 when (HomeTab.entries[selected]) {
