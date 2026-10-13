@@ -13,3 +13,12 @@ Blocked by: 06
 - [ ] Repeat One reloads the same Track when it finishes on its own; explicit next() still advances (core test)
 - [ ] Repeat All wraps from the last Track to the first; Off stops at the end (core test)
 - [ ] The Shuffle and Repeat controls show their current state in Now Playing (UI test)
+
+## Comments
+
+2026-10-13, code review decisions (user chose O1 on all three):
+- Removing the playing last Track under Repeat All keeps the existing behavior (pause on the previous Track, per ticket 06's `remove` doc). Reason: not asked for by this ticket.
+- `playNext`/`addToEnd` duplication left as is. Reason: only two callers.
+- `repeatLabel` keeps the enum's `toString`. Reason: not worth an explicit mapping yet.
+
+Open: the Compose UI test (`NowPlayingTest`) and QA have not run on a device; none was available.
