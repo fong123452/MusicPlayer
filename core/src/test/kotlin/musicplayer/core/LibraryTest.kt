@@ -91,4 +91,40 @@ class LibraryTest {
 
         assertEquals(listOf(2L, 5L, 9L), library.snapshot.value.tracks.map { it.id })
     }
+
+    @Test
+    fun `a refresh that fails keeps the Tracks from the previous refresh`() = runTest {
+        val source = FakeTrackSource(listOf(rawTrack(1, title = "Kept")))
+        val library = Library(source)
+        library.refresh()
+
+        source.failure = SecurityException("permission revoked")
+        val succeeded = library.refresh()
+
+        assertEquals(false, succeeded)
+        assertEquals(listOf("Kept"), library.snapshot.value.tracks.map { it.title })
+        assertEquals(true, library.snapshot.value.loaded)
+    }
+
+    @Test
+    fun `a refresh that fails before any success leaves the Library not loaded`() = runTest {
+        val source = FakeTrackSource().apply { failure = IllegalStateException("no cursor") }
+        val library = Library(source)
+
+        assertEquals(false, library.refresh())
+
+        assertEquals(false, library.snapshot.value.loaded)
+    }
+
+    @Test
+    fun `a refresh works again after a failed one`() = runTest {
+        val source = FakeTrackSource(listOf(rawTrack(1))).apply { failure = IllegalStateException() }
+        val library = Library(source)
+        library.refresh()
+
+        source.failure = null
+        assertEquals(true, library.refresh())
+
+        assertEquals(1, library.snapshot.value.tracks.size)
+    }
 }

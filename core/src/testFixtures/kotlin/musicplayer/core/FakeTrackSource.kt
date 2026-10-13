@@ -2,11 +2,15 @@ package musicplayer.core
 
 /** In-memory TrackSource for tests. Change [tracks] between refreshes to simulate files appearing. */
 class FakeTrackSource(var tracks: List<RawTrack> = emptyList()) : TrackSource {
+    /** When set, [loadTracks] throws it, as a source does when the device cannot be read. */
+    var failure: Exception? = null
+
     var loadCount = 0
         private set
 
     override suspend fun loadTracks(): List<RawTrack> {
         loadCount++
+        failure?.let { throw it }
         return tracks
     }
 }

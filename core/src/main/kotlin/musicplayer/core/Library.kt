@@ -1,5 +1,6 @@
 package musicplayer.core
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -13,8 +14,17 @@ class Library(private val source: TrackSource) {
     private val state = MutableStateFlow(LibrarySnapshot(emptyList(), loaded = false))
     val snapshot: StateFlow<LibrarySnapshot> = state
 
-    suspend fun refresh() {
-        state.value = LibrarySnapshot(source.loadTracks().map(::toTrack).sortedWith(byTitle), loaded = true)
+    /** Rescans the device. Returns false, keeping the previous snapshot, if the scan failed. */
+    suspend fun refresh(): Boolean {
+        val raw = try {
+            source.loadTracks()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            return false
+        }
+        state.value = LibrarySnapshot(raw.map(::toTrack).sortedWith(byTitle), loaded = true)
+        return true
     }
 
     private fun toTrack(raw: RawTrack) = Track(

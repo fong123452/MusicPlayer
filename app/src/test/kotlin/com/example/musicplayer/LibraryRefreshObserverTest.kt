@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleRegistry
 import com.example.musicplayer.permission.AudioPermission
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import musicplayer.core.FakeTrackSource
 import musicplayer.core.Library
@@ -54,5 +55,23 @@ class LibraryRefreshObserverTest {
         owner.registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
         assertEquals(0, source.loadCount)
+    }
+
+    @Test
+    fun `a failed scan on coming to the foreground keeps the Library and does not crash`() = runTest {
+        val source = FakeTrackSource(listOf(rawTrack(1)))
+        val library = Library(source)
+        val owner = Owner()
+        val scope = TestScope(UnconfinedTestDispatcher(testScheduler))
+        owner.registry.addObserver(LibraryRefreshObserver(library, FakePermission(true), scope))
+        owner.registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+
+        source.failure = SecurityException("revoked")
+        owner.registry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        owner.registry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        scope.runCurrent()
+
+        assertEquals(2, source.loadCount)
+        assertEquals(1, library.snapshot.value.tracks.size)
     }
 }

@@ -46,12 +46,9 @@ class MediaStoreTrackSource @Inject constructor(
 ) : TrackSource {
 
     override suspend fun loadTracks(): List<RawTrack> = withContext(Dispatchers.IO) {
-        try {
-            query(context.contentResolver)
-        } catch (_: SecurityException) {
-            // Permission was revoked since the last check; the permission gate notices on resume.
-            emptyList()
-        }
+        // A SecurityException (permission revoked) or a null cursor must not read as "no music":
+        // they propagate and Library.refresh keeps the previous snapshot.
+        query(context.contentResolver)
     }
 
     private fun query(resolver: ContentResolver): List<RawTrack> {
@@ -63,7 +60,7 @@ class MediaStoreTrackSource @Inject constructor(
             MediaStoreQuery.SELECTION,
             MediaStoreQuery.SELECTION_ARGS,
             null,
-        ) ?: return emptyList()
+        ) ?: error("MediaStore returned no cursor")
         cursor.use { c ->
             val id = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val title = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
