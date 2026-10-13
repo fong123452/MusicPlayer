@@ -76,16 +76,7 @@ fun NowPlayingScreen(
 @Composable
 private fun Header(track: Track) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Album art arrives with the Albums work; until then every Track shows the placeholder.
-        Box(
-            Modifier
-                .size(200.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .testTag(ART_PLACEHOLDER_TAG),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = null, Modifier.size(64.dp))
-        }
+        AlbumArt(track.albumId, 200.dp, ART_PLACEHOLDER_TAG)
         Text(
             track.title,
             style = MaterialTheme.typography.headlineSmall,

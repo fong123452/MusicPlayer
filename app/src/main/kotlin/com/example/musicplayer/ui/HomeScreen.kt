@@ -41,6 +41,8 @@ fun HomeScreen(
     val queueState by player.queueState.collectAsState()
     val isPlaying by player.isPlaying.collectAsState()
     var selected by rememberSaveable { mutableIntStateOf(0) }
+    var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
+    val openAlbum = snapshot.albums.firstOrNull { it.id == openAlbumId }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {
@@ -54,23 +56,35 @@ fun HomeScreen(
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             queueState.current?.let { MiniPlayer(it, isPlaying, player::togglePlayPause, onOpen = { showNowPlaying = true }) }
-            PrimaryTabRow(selectedTabIndex = selected) {
-                HomeTab.entries.forEachIndexed { index, tab ->
-                    Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
-                }
-            }
-            when (HomeTab.entries[selected]) {
-                HomeTab.Tracks -> TracksScreen(
-                    snapshot = snapshot,
-                    isRefreshing = isRefreshing,
-                    onRefresh = viewModel::refresh,
-                    onTrackClick = { index ->
-                        player.playFrom(snapshot.tracks, index)
+            if (openAlbum != null) {
+                AlbumDetailScreen(
+                    album = openAlbum,
+                    onPlay = { index ->
+                        player.playFrom(openAlbum.tracks, index)
                         onTrackPlayed()
                     },
+                    onClose = { openAlbumId = null },
                 )
-                else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Coming soon")
+            } else {
+                PrimaryTabRow(selectedTabIndex = selected) {
+                    HomeTab.entries.forEachIndexed { index, tab ->
+                        Tab(selected = selected == index, onClick = { selected = index }, text = { Text(tab.label) })
+                    }
+                }
+                when (HomeTab.entries[selected]) {
+                    HomeTab.Tracks -> TracksScreen(
+                        snapshot = snapshot,
+                        isRefreshing = isRefreshing,
+                        onRefresh = viewModel::refresh,
+                        onTrackClick = { index ->
+                            player.playFrom(snapshot.tracks, index)
+                            onTrackPlayed()
+                        },
+                    )
+                    HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.id })
+                    else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Coming soon")
+                    }
                 }
             }
         }

@@ -40,7 +40,8 @@ fun MiniPlayer(
             Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
+            AlbumArt(track.albumId, 40.dp, ROW_ART_PLACEHOLDER_TAG)
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(track.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                 Text(track.artist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
