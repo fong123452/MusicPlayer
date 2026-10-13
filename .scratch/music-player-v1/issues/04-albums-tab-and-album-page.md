@@ -13,3 +13,7 @@ Blocked by: 02
 - [ ] The Albums tab lists seeded Albums, and tapping one opens its page (UI test)
 - [ ] Playing from the Album page replaces the Queue with the Album's Tracks in order (core test)
 - [ ] A placeholder shows for a Track or Album without art (UI test)
+
+## Comments
+
+- 2026-10-13, review decisions (user): (1) Tracks with neither Album Artist nor album id each form their own Album, instead of merging by title; half-tagged albums splitting and same-title/same-Album-Artist merging stay as the ticket specifies. (2) Library refresh CPU stays on the caller's dispatcher until measured (moving it breaks LibraryRefreshObserverTest/LibraryViewModelTest, which expect synchronous refresh). (3) SubcomposeAsyncImage per row and BackHandler ordering left as is. (4) Follow-up review of the fix commits skipped; a real-device pass comes first, since Albums UI tests (AlbumsTabTest) could not run without an emulator.

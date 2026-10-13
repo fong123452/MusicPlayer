@@ -127,4 +127,108 @@ class LibraryTest {
 
         assertEquals(1, library.snapshot.value.tracks.size)
     }
+
+    @Test
+    fun `tracks with the same album title and Album Artist but different Track Artists form one Album`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Alice", album = "Hits", albumArtist = "Various Artists", albumId = 10),
+            rawTrack(2, artist = "Bob", album = "Hits", albumArtist = "Various Artists", albumId = 11),
+            rawTrack(3, artist = "Alice", album = "Hits", albumArtist = "Alice", albumId = 12),
+        )
+
+        val albums = library.snapshot.value.albums
+        assertEquals(2, albums.size)
+        val compilation = albums.single { it.albumArtist == "Various Artists" }
+        assertEquals("Hits", compilation.title)
+        assertEquals(setOf(1L, 2L), compilation.tracks.map { it.id }.toSet())
+    }
+
+    @Test
+    fun `tracks with no Album Artist group by MediaStore album id`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Alice", album = "Mix", albumId = 5),
+            rawTrack(2, artist = "Bob", album = "Mix", albumId = 5),
+            rawTrack(3, artist = "Alice", album = "Mix", albumId = 6),
+        )
+
+        val albums = library.snapshot.value.albums
+        assertEquals(2, albums.size)
+        assertEquals(setOf(1L, 2L), albums.single { it.albumId == 5L }.tracks.map { it.id }.toSet())
+    }
+
+    @Test
+    fun `an Album sorts its Tracks by disc then track number`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, albumArtist = "A", discNumber = 2, trackNumber = 1),
+            rawTrack(2, albumArtist = "A", discNumber = 1, trackNumber = 2),
+            rawTrack(3, albumArtist = "A", discNumber = 1, trackNumber = 1),
+            rawTrack(4, albumArtist = "A", discNumber = null, trackNumber = 9),
+        )
+
+        assertEquals(listOf(3L, 2L, 4L, 1L), library.snapshot.value.albums.single().tracks.map { it.id })
+    }
+
+    @Test
+    fun `albums are listed by title ignoring case`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, album = "beta", albumArtist = "A"),
+            rawTrack(2, album = "Alpha", albumArtist = "A"),
+        )
+
+        assertEquals(listOf("Alpha", "beta"), library.snapshot.value.albums.map { it.title })
+    }
+
+    @Test
+    fun `an Album without an Album Artist is credited to its Track Artist, or Various Artists when they differ`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Solo", album = "One", albumId = 1),
+            rawTrack(2, artist = "Solo", album = "One", albumId = 1),
+            rawTrack(3, artist = "X", album = "Mix", albumId = 2),
+            rawTrack(4, artist = "Y", album = "Mix", albumId = 2),
+        )
+
+        val byTitle = library.snapshot.value.albums.associateBy { it.title }
+        assertEquals("Solo", byTitle.getValue("One").albumArtist)
+        assertEquals("Various Artists", byTitle.getValue("Mix").albumArtist)
+    }
+
+    @Test
+    fun `an Album is credited to its Album Artist, not to its Track Artists`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "Guest One", album = "Record", albumArtist = "The Band"),
+            rawTrack(2, artist = "Guest Two", album = "Record", albumArtist = "The Band"),
+        )
+
+        assertEquals("The Band", library.snapshot.value.albums.single().albumArtist)
+    }
+
+    @Test
+    fun `a Track with no track number sorts after the numbered Tracks of its disc`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, albumArtist = "A", discNumber = 1, trackNumber = null),
+            rawTrack(2, albumArtist = "A", discNumber = 1, trackNumber = 3),
+        )
+
+        assertEquals(listOf(2L, 1L), library.snapshot.value.albums.single().tracks.map { it.id })
+    }
+
+    @Test
+    fun `album title and Album Artist match ignoring case`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, album = "Hits", albumArtist = "The Band"),
+            rawTrack(2, album = "hits", albumArtist = "THE BAND"),
+        )
+
+        assertEquals(1, library.snapshot.value.albums.size)
+    }
+
+    @Test
+    fun `tracks with neither an Album Artist nor an album id do not merge into one Album`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, artist = "X", album = null),
+            rawTrack(2, artist = "Y", album = null),
+        )
+
+        assertEquals(2, library.snapshot.value.albums.size)
+    }
 }

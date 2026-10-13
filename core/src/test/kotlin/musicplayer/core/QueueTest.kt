@@ -197,4 +197,27 @@ class QueueTest {
         assertEquals(tracks[0], queue.queue.value.current)
         assertEquals(emptyList(), skipped)
     }
+
+    @Test
+    fun `playing an Album replaces the queue with its tracks in disc and track order, starting at the one chosen`() = runTest {
+        val library = Library(
+            FakeTrackSource(
+                listOf(
+                    rawTrack(1, albumArtist = "A", discNumber = 2, trackNumber = 1),
+                    rawTrack(2, albumArtist = "A", discNumber = 1, trackNumber = 2),
+                    rawTrack(3, albumArtist = "A", discNumber = 1, trackNumber = 1),
+                    rawTrack(9, album = "Other", albumArtist = "B"),
+                ),
+            ),
+        )
+        library.refresh()
+        val queue = queueOf()
+        queue.replace(listOf(track(7)), startIndex = 0)
+        val album = library.snapshot.value.albums.single { it.title == "Album" }
+
+        queue.replace(album.tracks, startIndex = 1)
+
+        assertEquals(listOf(3L, 2L, 1L), queue.queue.value.tracks.map { it.id })
+        assertEquals(2L, queue.queue.value.current?.id)
+    }
 }

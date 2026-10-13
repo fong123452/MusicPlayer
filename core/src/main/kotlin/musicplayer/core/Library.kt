@@ -6,12 +6,13 @@ import kotlinx.coroutines.flow.StateFlow
 
 data class LibrarySnapshot(
     val tracks: List<Track>,
+    val albums: List<Album> = emptyList(),
     /** False until the first refresh has completed. */
     val loaded: Boolean,
 )
 
 class Library(private val source: TrackSource) {
-    private val state = MutableStateFlow(LibrarySnapshot(emptyList(), loaded = false))
+    private val state = MutableStateFlow(LibrarySnapshot(emptyList(), emptyList(), loaded = false))
     val snapshot: StateFlow<LibrarySnapshot> = state
 
     /** Rescans the device. Returns false, keeping the previous snapshot, if the scan failed. */
@@ -23,7 +24,8 @@ class Library(private val source: TrackSource) {
         } catch (_: Exception) {
             return false
         }
-        state.value = LibrarySnapshot(raw.map(::toTrack).sortedWith(byTitle), loaded = true)
+        val tracks = raw.map(::toTrack).sortedWith(byTitle)
+        state.value = LibrarySnapshot(tracks, groupIntoAlbums(tracks), loaded = true)
         return true
     }
 
@@ -40,11 +42,38 @@ class Library(private val source: TrackSource) {
         durationMs = raw.durationMs,
     )
 
+    private fun groupIntoAlbums(tracks: List<Track>): List<Album> =
+        tracks.groupBy(::albumKey).map { (key, members) ->
+            val sorted = members.sortedWith(byDiscAndTrack)
+            Album(
+                key = key,
+                title = sorted.first().album,
+                albumArtist = sorted.firstNotNullOfOrNull { it.albumArtist } ?: creditFor(sorted),
+                albumId = sorted.firstNotNullOfOrNull { it.albumId },
+                tracks = sorted,
+            )
+        }.sortedWith(compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.key })
+
+    private fun albumKey(track: Track): String = when {
+        track.albumArtist != null -> "artist:${track.album.lowercase()}\u0000${track.albumArtist.lowercase()}"
+        track.albumId != null -> "id:${track.albumId}"
+        else -> "track:${track.id}"
+    }
+
+    private fun creditFor(tracks: List<Track>): String =
+        tracks.map { it.artist }.distinct().singleOrNull() ?: VARIOUS_ARTISTS
+
     private fun String?.orFallback(fallback: String) = if (isNullOrBlank()) fallback else this
 
     private val byTitle = compareBy<Track, String>(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.id }
 
+    private val byDiscAndTrack = compareBy<Track> { it.discNumber ?: 1 }
+        .thenBy { it.trackNumber ?: Int.MAX_VALUE }
+        .thenBy { it.title.lowercase() }
+        .thenBy { it.id }
+
     companion object {
+        const val VARIOUS_ARTISTS = "Various Artists"
         const val UNKNOWN_ARTIST = "Unknown Artist"
         const val UNKNOWN_ALBUM = "Unknown Album"
     }

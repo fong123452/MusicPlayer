@@ -45,19 +45,7 @@ fun TracksScreen(
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().testTag(TRACKS_LIST_TAG)) {
                 itemsIndexed(snapshot.tracks, key = { _, track -> track.id }) { index, track ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onTrackClick(index) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Text(track.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                        Text(
-                            "${track.artist} • ${track.album}",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                        )
-                    }
+                    TrackRow(track, onClick = { onTrackClick(index) })
                 }
             }
         }
