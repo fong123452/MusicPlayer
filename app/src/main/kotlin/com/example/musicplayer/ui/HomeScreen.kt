@@ -74,6 +74,7 @@ fun HomeScreen(
     val playlistsLoaded by playlistsViewModel.loaded.collectAsState()
     LaunchedEffect(playlists, playlistsLoaded) { if (playlistsLoaded && openPlaylist == null) openPlaylistId = null }
     val theme by themeViewModel.theme.collectAsState()
+    val currentTheme = theme
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -139,9 +140,9 @@ fun HomeScreen(
                     onRemove = { playlistsViewModel.remove(openPlaylist, it) },
                     onClose = { openPlaylistId = null },
                 )
-            } else if (showSettings && theme != null) {
+            } else if (showSettings && currentTheme != null) {
                 SettingsScreen(
-                    theme = theme!!,
+                    theme = currentTheme,
                     onModeChange = themeViewModel::setMode,
                     onAccentChange = themeViewModel::setAccent,
                     onClose = { showSettings = false },

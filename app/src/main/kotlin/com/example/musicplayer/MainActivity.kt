@@ -5,7 +5,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
+import android.graphics.Color
+import com.example.musicplayer.ui.isDark
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Box
@@ -48,6 +54,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
             val theme by themeViewModel.theme.collectAsState()
+            val systemDark = isSystemInDarkTheme()
+            val dark = theme?.let { isDark(it.mode, systemDark) } ?: systemDark
+            // System bar icons follow the app's Theme, not the system's, or they vanish against the app's colors.
+            DisposableEffect(dark) {
+                val bars = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
+                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+                onDispose {}
+            }
             // Nothing is drawn until the saved Theme is known, so there is no flash of the default colors.
             theme?.let { AppTheme(it) {
                 Surface(Modifier.fillMaxSize()) {

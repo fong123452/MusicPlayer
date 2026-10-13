@@ -78,4 +78,19 @@ class ThemeSettingsTest {
 
         assertEquals(argb(other.light.primary), previewColor())
     }
+
+    @Test
+    fun follow_system_uses_the_devices_current_brightness() {
+        openSettings()
+        compose.onNodeWithText(ThemeMode.Dark.label()).performClick()
+
+        compose.onNodeWithText(ThemeMode.FollowSystem.label()).performClick()
+        compose.waitForIdle()
+
+        val night = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+            .resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val roles = AccentPalette.first().let { if (night) it.dark else it.light }
+        assertEquals(argb(roles.primary), previewColor())
+    }
 }
