@@ -5,6 +5,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -70,5 +71,92 @@ class QueueTest {
     @Test
     fun `an empty queue has no current track`() = runTest {
         assertNull(queueOf().queue.value.current)
+    }
+
+    @Test
+    fun `previous after more than 3 seconds restarts the current track`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+        engine.seekTo(5_000)
+
+        queue.previous(positionMs = 5_000)
+
+        assertEquals(tracks[1], queue.queue.value.current)
+        assertEquals(0L, engine.positionMs)
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `previous within 3 seconds moves to the previous track`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+
+        queue.previous(positionMs = 3_000)
+
+        assertEquals(tracks[0], queue.queue.value.current)
+        assertEquals("content://media/audio/1", engine.loaded.last())
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `previous on the first track within 3 seconds restarts it`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+        engine.seekTo(1_000)
+
+        queue.previous(positionMs = 1_000)
+
+        assertEquals(tracks[0], queue.queue.value.current)
+        assertEquals(0L, engine.positionMs)
+    }
+
+    @Test
+    fun `next moves to the next track`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+
+        queue.next()
+
+        assertEquals(tracks[1], queue.queue.value.current)
+        assertEquals("content://media/audio/2", engine.loaded.last())
+    }
+
+    @Test
+    fun `next on the last track stops playback`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+
+        queue.next()
+
+        assertFalse(queue.isPlaying.value)
+        assertEquals(tracks[2], queue.queue.value.current)
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `a playback error skips to the next track and reports the skipped title once`() = runTest {
+        val queue = queueOf()
+        val skipped = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { queue.skipped.collect { skipped += it } }
+        queue.replace(tracks, startIndex = 0)
+
+        engine.fail("boom")
+
+        assertEquals(tracks[1], queue.queue.value.current)
+        assertTrue(queue.isPlaying.value)
+        assertEquals(listOf("T1"), skipped)
+    }
+
+    @Test
+    fun `a playback error on the last track stops and still reports it`() = runTest {
+        val queue = queueOf()
+        val skipped = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { queue.skipped.collect { skipped += it } }
+        queue.replace(tracks, startIndex = 2)
+
+        engine.fail()
+
+        assertFalse(queue.isPlaying.value)
+        assertEquals(listOf("T3"), skipped)
     }
 }
