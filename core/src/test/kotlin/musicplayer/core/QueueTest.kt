@@ -242,4 +242,148 @@ class QueueTest {
         assertEquals(listOf(2L, 1L), queue.queue.value.tracks.map { it.id })
         assertEquals(1L, queue.queue.value.current?.id)
     }
+
+    private fun ids(queue: Queue) = queue.queue.value.tracks.map { it.id }
+
+    @Test
+    fun `playNext inserts the track right after the current one without interrupting playback`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+
+        queue.playNext(track(9))
+
+        assertEquals(listOf(1L, 9L, 2L, 3L), ids(queue))
+        assertEquals(1L, queue.queue.value.current?.id)
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `addToEnd appends the track to the end of the queue`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+
+        queue.addToEnd(track(9))
+
+        assertEquals(listOf(1L, 2L, 3L, 9L), ids(queue))
+        assertEquals(2L, queue.queue.value.current?.id)
+    }
+
+    @Test
+    fun `playNext and addToEnd on an empty queue start playing the track`() = runTest {
+        val queue = queueOf()
+
+        queue.playNext(track(9))
+
+        assertEquals(listOf(9L), ids(queue))
+        assertTrue(queue.isPlaying.value)
+
+        val other = queueOf()
+        other.addToEnd(track(8))
+        assertEquals(listOf(8L), ids(other))
+        assertEquals(8L, other.queue.value.current?.id)
+    }
+
+    @Test
+    fun `adding after the last track finished makes the new track play when the user presses play`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        engine.complete()
+
+        queue.addToEnd(track(9))
+        queue.next()
+
+        assertEquals(9L, queue.queue.value.current?.id)
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `moving a track reorders the queue and the current track keeps playing`() = runTest {
+        val queue = queueOf()
+        queue.replace((1L..4L).map(::track), startIndex = 1)
+
+        queue.move(from = 3, to = 0) // current shifts from 1 to 2
+        assertEquals(listOf(4L, 1L, 2L, 3L), ids(queue))
+        assertEquals(2L, queue.queue.value.current?.id)
+
+        queue.move(from = 2, to = 3) // moving the current track itself
+        assertEquals(listOf(4L, 1L, 3L, 2L), ids(queue))
+        assertEquals(2L, queue.queue.value.current?.id)
+
+        queue.move(from = 0, to = 2) // crossing the current track from before to after... current stays
+        assertEquals(2L, queue.queue.value.current?.id)
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `moving ignores indices outside the queue`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+
+        queue.move(from = 5, to = 0)
+        queue.move(from = 0, to = -1)
+
+        assertEquals(listOf(1L, 2L, 3L), ids(queue))
+    }
+
+    @Test
+    fun `removing a track before the current one keeps the same track playing`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+
+        queue.remove(0)
+
+        assertEquals(listOf(2L, 3L), ids(queue))
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertEquals(1, engine.loaded.size)
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `removing a track after the current one leaves the current track alone`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+
+        queue.remove(2)
+
+        assertEquals(listOf(1L, 2L), ids(queue))
+        assertEquals(1L, queue.queue.value.current?.id)
+    }
+
+    @Test
+    fun `removing the current track moves playback to the next track`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+
+        queue.remove(1)
+
+        assertEquals(listOf(1L, 3L), ids(queue))
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertEquals(listOf("content://media/audio/2", "content://media/audio/3"), engine.loaded)
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `removing the current track when none is left after it stops playback`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+
+        queue.remove(2)
+
+        assertEquals(listOf(1L, 2L), ids(queue))
+        assertNull(queue.queue.value.current)
+        assertFalse(queue.isPlaying.value)
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `removing the only track empties the queue and stops playback`() = runTest {
+        val queue = queueOf()
+        queue.replace(listOf(track(1)), startIndex = 0)
+
+        queue.remove(0)
+
+        assertEquals(emptyList(), ids(queue))
+        assertNull(queue.queue.value.current)
+        assertFalse(queue.isPlaying.value)
+    }
 }

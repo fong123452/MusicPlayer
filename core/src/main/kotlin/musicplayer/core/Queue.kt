@@ -78,6 +78,66 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
         loadCurrentAndPlay()
     }
 
+    /** Inserts [track] right after the current one; on an empty Queue it starts playing. */
+    fun playNext(track: Track) {
+        val s = state.value
+        if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        val at = s.currentIndex + 1
+        state.value = s.copy(tracks = s.tracks.toMutableList().apply { add(at, track) })
+    }
+
+    /** Appends [track] to the end; on an empty Queue it starts playing. */
+    fun addToEnd(track: Track) {
+        val s = state.value
+        if (s.tracks.isEmpty()) return replace(listOf(track), 0)
+        state.value = s.copy(tracks = s.tracks + track)
+    }
+
+    /** Moves the Track at [from] to [to]. The current Track keeps playing; indices outside the Queue are ignored. */
+    fun move(from: Int, to: Int) {
+        val s = state.value
+        if (from !in s.tracks.indices || to !in s.tracks.indices || from == to) return
+        val tracks = s.tracks.toMutableList().apply { add(to, removeAt(from)) }
+        val current = when {
+            s.currentIndex == from -> to
+            from < s.currentIndex && to >= s.currentIndex -> s.currentIndex - 1
+            from > s.currentIndex && to <= s.currentIndex -> s.currentIndex + 1
+            else -> s.currentIndex
+        }
+        state.value = QueueState(tracks, current)
+    }
+
+    /**
+     * Removes the Track at [index]. Removing the current Track moves playback to the one after it, or
+     * stops when none is left. Removing any other Track keeps the same Track playing.
+     */
+    fun remove(index: Int) {
+        val s = state.value
+        if (index !in s.tracks.indices) return
+        val tracks = s.tracks.toMutableList().apply { removeAt(index) }
+        when {
+            index < s.currentIndex -> state.value = QueueState(tracks, s.currentIndex - 1)
+            index > s.currentIndex -> state.value = s.copy(tracks = tracks)
+            tracks.isEmpty() -> {
+                state.value = QueueState(emptyList(), -1)
+                stopPlayback()
+            }
+            index > tracks.lastIndex -> {
+                state.value = QueueState(tracks, tracks.size)
+                stopPlayback()
+            }
+            else -> {
+                state.value = QueueState(tracks, index)
+                loadCurrentAndPlay()
+            }
+        }
+    }
+
+    private fun stopPlayback() {
+        ranOut = true
+        engine.pause()
+    }
+
     private fun skipCurrent() {
         val failed = state.value.current ?: return
         skippedEvents.tryEmit(failed.title)
