@@ -8,6 +8,9 @@ sealed interface PlaybackEvent {
     /** The loaded Track played to its end on its own. */
     data object Completed : PlaybackEvent
 
+    /** The engine could not reach its player, so no Track was tried. */
+    data object ConnectionFailed : PlaybackEvent
+
     /** The loaded Track could not be played. */
     data class Error(val message: String?) : PlaybackEvent
 }
@@ -22,4 +25,7 @@ interface PlaybackEngine {
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
+
+    /** Where the loaded Track is now, in milliseconds. */
+    fun currentPositionMs(): Long
 }

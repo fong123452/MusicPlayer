@@ -25,11 +25,17 @@ class FakePlaybackEngine : PlaybackEngine {
     override fun play() { playing.value = true }
     override fun pause() { playing.value = false }
     override fun seekTo(positionMs: Long) { this.positionMs = positionMs }
+    override fun currentPositionMs() = positionMs
 
     /** The loaded Track played to its end. */
     fun complete() {
         playing.value = false
         eventFlow.tryEmit(PlaybackEvent.Completed)
+    }
+
+    fun failConnection() {
+        playing.value = false
+        eventFlow.tryEmit(PlaybackEvent.ConnectionFailed)
     }
 
     fun fail(message: String? = null) {

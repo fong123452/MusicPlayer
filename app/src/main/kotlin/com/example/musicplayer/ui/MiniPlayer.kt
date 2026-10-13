@@ -1,5 +1,6 @@
 package com.example.musicplayer.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,8 +28,14 @@ const val PLAY_DESCRIPTION = "Play"
 const val PAUSE_DESCRIPTION = "Pause"
 
 @Composable
-fun MiniPlayer(track: Track, isPlaying: Boolean, onTogglePlayPause: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(tonalElevation = 3.dp, modifier = modifier.fillMaxWidth().testTag(MINI_PLAYER_TAG)) {
+fun MiniPlayer(
+    track: Track,
+    isPlaying: Boolean,
+    onTogglePlayPause: () -> Unit,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(tonalElevation = 3.dp, modifier = modifier.fillMaxWidth().testTag(MINI_PLAYER_TAG).clickable(onClick = onOpen)) {
         Row(
             Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -48,7 +55,7 @@ fun MiniPlayer(track: Track, isPlaying: Boolean, onTogglePlayPause: () -> Unit, 
 }
 
 /** Material "pause" glyph; drawn here because it is not in material-icons-core. */
-private val PauseIcon: ImageVector = ImageVector.Builder(
+internal val PauseIcon: ImageVector = ImageVector.Builder(
     name = "Pause",
     defaultWidth = 24.dp,
     defaultHeight = 24.dp,
