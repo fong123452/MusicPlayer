@@ -280,4 +280,18 @@ class LibraryTest {
 
         assertEquals(listOf("Alpha", "beta"), library.snapshot.value.artists.map { it.name })
     }
+
+    @Test
+    fun `an Artist spelled two ways shows the same spelling whatever the Track titles are`() = runTest {
+        val library = libraryOf(
+            rawTrack(1, title = "A first", artist = "the band"),
+            rawTrack(2, title = "Z last", artist = "The Band"),
+        )
+        val flipped = libraryOf(
+            rawTrack(1, title = "Z last", artist = "the band"),
+            rawTrack(2, title = "A first", artist = "The Band"),
+        )
+
+        assertEquals(library.snapshot.value.artists.single().name, flipped.snapshot.value.artists.single().name)
+    }
 }

@@ -108,3 +108,5 @@ private fun SectionHeader(text: String) {
         color = MaterialTheme.colorScheme.primary,
     )
 }
+
+private fun pluralOf(count: Int, noun: String) = if (count == 1) "1 $noun" else "$count ${noun}s"

@@ -64,7 +64,7 @@ class Library(private val source: TrackSource) {
             val ownAlbums = albumsByArtist[key].orEmpty()
             Artist(
                 key = key,
-                name = ownTracks.firstOrNull()?.artist ?: ownAlbums.first().albumArtist,
+                name = ownTracks.minOfOrNull { it.artist } ?: ownAlbums.minOf { it.albumArtist },
                 albums = ownAlbums,
                 tracks = ownTracks,
             )
