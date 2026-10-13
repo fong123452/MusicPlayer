@@ -74,8 +74,8 @@ class SearchTest {
 
         compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("MOVES")
 
-        compose.waitForText("Albums")
-        compose.onNodeWithText("Tracks").assertDoesNotExist()
+        compose.waitForText(ALBUMS_HEADER)
+        compose.onNodeWithText(TRACKS_HEADER).assertDoesNotExist()
         compose.onNodeWithText("Night Moves").performClick()
 
         compose.onNodeWithTag(ALBUM_TRACKS_TAG).assertExists()
@@ -88,10 +88,10 @@ class SearchTest {
 
         compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("moon")
 
-        compose.waitForText("Artists")
+        compose.waitForText(ARTISTS_HEADER)
         compose.onNodeWithText("Moonlight Band").assertExists()
-        compose.onNodeWithText("Tracks").assertDoesNotExist()
-        compose.onNodeWithText("Albums").assertDoesNotExist()
+        compose.onNodeWithText(TRACKS_HEADER).assertDoesNotExist()
+        compose.onNodeWithText(ALBUMS_HEADER).assertDoesNotExist()
     }
 
     @Test
@@ -99,10 +99,22 @@ class SearchTest {
         openSearch()
 
         compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("daybreak")
-        compose.waitForText("Tracks")
+        compose.waitForText(TRACKS_HEADER)
         compose.onNodeWithText("Daybreak").performClick()
 
         compose.waitUntil(5_000) { engine.loaded.isNotEmpty() }
         assertEquals(listOf("content://media/audio/2"), engine.loaded)
+    }
+
+    @Test
+    fun tapping_an_artist_result_opens_the_artist_page() {
+        openSearch()
+
+        compose.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("moon")
+        compose.waitForText(ARTISTS_HEADER)
+        compose.onNodeWithText("Moonlight Band").performClick()
+
+        compose.onNodeWithTag(ARTIST_PAGE_TAG).assertExists()
+        compose.onNodeWithText("Daybreak").assertExists()
     }
 }

@@ -35,6 +35,9 @@ const val SEARCH_FIELD_TAG = "search_field"
 const val SEARCH_RESULTS_TAG = "search_results"
 const val SEARCH_DESCRIPTION = "Search"
 const val NO_RESULTS_MESSAGE = "No results"
+const val TRACKS_HEADER = "Tracks"
+const val ALBUMS_HEADER = "Albums"
+const val ARTISTS_HEADER = "Artists"
 
 @Composable
 fun SearchScreen(
@@ -65,11 +68,11 @@ fun SearchScreen(
             )
         }
         when {
-            query.isBlank() -> Unit
+            query.isBlank() || !snapshot.loaded -> Unit
             results.isEmpty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(NO_RESULTS_MESSAGE) }
             else -> LazyColumn(Modifier.fillMaxSize().testTag(SEARCH_RESULTS_TAG)) {
                 if (results.tracks.isNotEmpty()) {
-                    item(key = "tracks-header") { ResultHeader("Tracks") }
+                    item(key = "tracks-header") { ResultHeader(TRACKS_HEADER) }
                     itemsIndexed(results.tracks, key = { _, track -> "track-${track.id}" }) { index, track ->
                         TrackRow(
                             track,
@@ -80,7 +83,7 @@ fun SearchScreen(
                     }
                 }
                 if (results.albums.isNotEmpty()) {
-                    item(key = "albums-header") { ResultHeader("Albums") }
+                    item(key = "albums-header") { ResultHeader(ALBUMS_HEADER) }
                     items(results.albums, key = { "album-${it.key}" }) { album ->
                         Row(
                             Modifier.fillMaxWidth().clickable { onAlbumClick(album) }.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -95,7 +98,7 @@ fun SearchScreen(
                     }
                 }
                 if (results.artists.isNotEmpty()) {
-                    item(key = "artists-header") { ResultHeader("Artists") }
+                    item(key = "artists-header") { ResultHeader(ARTISTS_HEADER) }
                     items(results.artists, key = { "artist-${it.key}" }) { artist ->
                         Text(
                             artist.name,

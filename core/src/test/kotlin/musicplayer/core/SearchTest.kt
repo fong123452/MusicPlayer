@@ -35,7 +35,7 @@ class SearchTest {
     }
 
     @Test
-    fun `one query can match all three groups`() = runTest {
+    fun `a query is matched per group, so each group can be empty independently`() = runTest {
         val result = sample().search("order")
 
         assertEquals(emptyList(), result.tracks.map { it.title })
