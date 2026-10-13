@@ -1,7 +1,6 @@
 package com.example.musicplayer.di
 
 import android.content.Context
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import com.example.musicplayer.data.MediaStoreTrackSource
 import com.example.musicplayer.data.PlaylistDatabase
@@ -25,6 +24,7 @@ import musicplayer.core.Playlists
 import musicplayer.core.Queue
 import musicplayer.core.ThemeStore
 import musicplayer.core.DataStoreThemeStore
+import musicplayer.core.themeDataStore
 import musicplayer.core.TrackSource
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -84,7 +84,5 @@ object StorageModule {
     @Provides
     @Singleton
     fun themeStore(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): ThemeStore =
-        DataStoreThemeStore(
-            PreferenceDataStoreFactory.create(scope = scope) { context.filesDir.resolve("datastore/theme.preferences_pb") },
-        )
+        DataStoreThemeStore(themeDataStore(scope, context.filesDir.resolve("datastore/theme.preferences_pb")))
 }
