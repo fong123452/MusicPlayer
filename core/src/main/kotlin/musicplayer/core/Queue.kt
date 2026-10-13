@@ -38,6 +38,7 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
             engine.isPlaying.collect { playing ->
                 if (playing) {
                     reportedPlaying = true
+                    wantsPlay = true // an outside play (notification) or recovery from buffering is intent too
                 } else if (reportedPlaying) {
                     reportedPlaying = false
                     wantsPlay = false

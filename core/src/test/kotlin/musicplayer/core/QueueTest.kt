@@ -393,7 +393,7 @@ class QueueTest {
     }
 
     @Test
-    fun `adding to a queue stopped by removing its last track inserts after the current track as usual`() = runTest {
+    fun `adding to a queue paused on its last remaining track inserts after the current track as usual`() = runTest {
         val queue = queueOf()
         queue.replace(tracks, startIndex = 2)
         queue.remove(2)
@@ -457,5 +457,18 @@ class QueueTest {
 
         assertEquals(3L, queue.queue.value.current?.id)
         assertFalse(engine.playRequested)
+    }
+
+    @Test
+    fun `removing the current track after playback was resumed from outside keeps it playing`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+        engine.pause() // paused from the notification
+        engine.play() // and resumed from the notification
+
+        queue.remove(1)
+
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertTrue(engine.playRequested)
     }
 }
