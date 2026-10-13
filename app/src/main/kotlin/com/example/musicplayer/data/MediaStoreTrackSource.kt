@@ -41,6 +41,12 @@ internal object MediaStoreQuery {
     }
 }
 
+/** Before API 30 the TRACK column packs the disc number into the thousands: 1005 is disc 1, track 5. */
+internal data class DiscAndTrack(val disc: Int?, val track: Int?)
+
+internal fun unpackTrackColumn(packed: Int?): DiscAndTrack =
+    DiscAndTrack(disc = packed?.div(1000)?.takeIf { it > 0 }, track = packed?.rem(1000))
+
 class MediaStoreTrackSource @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : TrackSource {
@@ -78,8 +84,7 @@ class MediaStoreTrackSource @Inject constructor(
             val result = ArrayList<RawTrack>(c.count)
             while (c.moveToNext()) {
                 val trackId = c.getLong(id)
-                // Before API 30 the TRACK column packs the disc number into the thousands.
-                val packedTrack = c.intOrNull(track)
+                val packed = unpackTrackColumn(c.intOrNull(track))
                 result += RawTrack(
                     id = trackId,
                     uri = ContentUris.withAppendedId(collection, trackId).toString(),
@@ -88,8 +93,8 @@ class MediaStoreTrackSource @Inject constructor(
                     album = c.stringOrNull(album),
                     albumArtist = if (albumArtist >= 0) c.stringOrNull(albumArtist) else null,
                     albumId = c.longOrNull(albumId),
-                    discNumber = if (disc >= 0) c.intOrNull(disc) else packedTrack?.div(1000)?.takeIf { it > 0 },
-                    trackNumber = if (cdTrack >= 0) c.intOrNull(cdTrack) else packedTrack?.rem(1000),
+                    discNumber = if (disc >= 0) c.intOrNull(disc) else packed.disc,
+                    trackNumber = if (cdTrack >= 0) c.intOrNull(cdTrack) else packed.track,
                     durationMs = c.getLong(duration),
                     displayName = c.getString(displayName).orEmpty(),
                 )
