@@ -36,6 +36,10 @@ class AppThemeTest {
                 assertEquals(Color(roles.primary), scheme.tertiary, where)
                 assertEquals(Color(roles.primaryContainer), scheme.surfaceVariant, where)
                 assertEquals(Color(roles.surface), scheme.surfaceContainer, where)
+                assertEquals(Color(roles.surface), scheme.surfaceDim, where)
+                assertEquals(Color(roles.onSurface), scheme.outline, where)
+                assertEquals(Color(roles.primaryContainer), scheme.outlineVariant, where)
+                assertEquals(Color(roles.primary), scheme.surfaceTint, where)
             }
         }
     }

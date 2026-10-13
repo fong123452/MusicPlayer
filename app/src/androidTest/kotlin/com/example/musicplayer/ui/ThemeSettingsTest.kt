@@ -1,5 +1,6 @@
 package com.example.musicplayer.ui
 
+import android.content.res.Configuration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.captureToImage
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.core.app.ActivityScenario
+import androidx.test.platform.app.InstrumentationRegistry
 import com.example.musicplayer.MainActivity
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -87,9 +89,9 @@ class ThemeSettingsTest {
         compose.onNodeWithText(ThemeMode.FollowSystem.label()).performClick()
         compose.waitForIdle()
 
-        val night = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
-            .resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val night = InstrumentationRegistry.getInstrumentation().targetContext
+            .resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
         val roles = AccentPalette.first().let { if (night) it.dark else it.light }
         assertEquals(argb(roles.primary), previewColor())
     }

@@ -9,10 +9,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.File
-import java.io.IOException
 
 enum class ThemeMode { Light, Dark, FollowSystem }
 
@@ -33,7 +31,7 @@ class DataStoreThemeStore(private val dataStore: DataStore<Preferences>) : Theme
     private val modeKey = stringPreferencesKey("mode")
     private val accentKey = stringPreferencesKey("accent")
 
-    override val theme: Flow<Theme> = dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }.map { prefs ->
+    override val theme: Flow<Theme> = dataStore.data.map { prefs ->
         Theme(
             mode = ThemeMode.entries.firstOrNull { it.name == prefs[modeKey] } ?: ThemeMode.FollowSystem,
             accent = AccentPalette.firstOrNull { it.id == prefs[accentKey] } ?: AccentPalette.first(),
