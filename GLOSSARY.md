@@ -64,4 +64,4 @@ A setting that strengthens low frequencies. It can be on or off.
 - An **Album** is listed under its **Album Artist**. Each of its **Tracks** is also listed under that Track's own **Artist**
 - A **Playlist** holds Tracks from the **Library**. When a Track leaves the Library, it is removed from every Playlist
 - Playing a **Playlist**, **Album**, **Artist** or the **Library** replaces the **Queue** with a copy of its Tracks
-- "Play next" inserts a **Track** right after the current one in the **Queue**. "Add to queue" appends it to the end. When removing the current Track left nothing to play, both make the new Track current but do not start it
+- "Play next" inserts a **Track** right after the current one in the **Queue**. "Add to queue" appends it to the end

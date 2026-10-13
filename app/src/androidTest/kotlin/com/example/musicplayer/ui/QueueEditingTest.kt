@@ -97,4 +97,15 @@ class QueueEditingTest {
         queue.onChildAt(0).assert(hasAnyDescendant(hasText("Alpha")))
         queue.onChildAt(1).assert(hasAnyDescendant(hasText("Gamma")))
     }
+
+    @Test
+    fun now_playing_stays_closed_after_the_queue_is_emptied_and_a_track_is_queued_again() {
+        openNowPlaying()
+        repeat(3) { compose.onAllNodesWithContentDescription(REMOVE_FROM_QUEUE_DESCRIPTION)[0].performClick() }
+        compose.onNodeWithTag(NOW_PLAYING_TAG).assertDoesNotExist()
+
+        fromRow(row = 0, action = PLAY_NEXT_LABEL)
+
+        compose.onNodeWithTag(NOW_PLAYING_TAG).assertDoesNotExist()
+    }
 }

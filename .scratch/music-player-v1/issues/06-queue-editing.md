@@ -17,3 +17,4 @@ Blocked by: 03
 
 - Review decisions (user): drag-reorder has no auto-scroll and no Compose drag test; extract the offset-to-index maths into a unit-tested function and defer auto-scroll (candidate for ticket 13, manual check on a real phone). Cosmetic P3s left as is: bundling onPlayNext/onAddToQueue, duplicated guards in playNext/addToEnd, mixed-behaviour tests, no Album/Artist-page UI test for Play next.
 - Instrumented tests (QueueEditingTest) were built but never run: no emulator/device was available.
+- Follow-up review fixes: Queue now tracks play intent (engine.isPlaying is false while buffering) so removing the current Track right after a skip keeps playing; removing the current last Track now leaves the last remaining Track current and paused instead of an out-of-range index, so the Queue stays reachable (appendWhileStopped dropped). Queue-flag-reset UI test added (built, not run: no device).

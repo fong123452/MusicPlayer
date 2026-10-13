@@ -364,16 +364,20 @@ class QueueTest {
     }
 
     @Test
-    fun `removing the current track when none is left after it stops playback`() = runTest {
+    fun `removing the current track when none follows stops playback and makes the last remaining track current`() = runTest {
         val queue = queueOf()
         queue.replace(tracks, startIndex = 2)
 
         queue.remove(2)
 
         assertEquals(listOf(1L, 2L), ids(queue))
-        assertNull(queue.queue.value.current)
+        assertEquals(2L, queue.queue.value.current?.id)
+        assertEquals("content://media/audio/2", engine.loaded.last())
         assertFalse(queue.isPlaying.value)
-        assertEquals(1, engine.loaded.size)
+        assertFalse(engine.playRequested)
+
+        queue.play()
+        assertTrue(queue.isPlaying.value)
     }
 
     @Test
@@ -389,26 +393,17 @@ class QueueTest {
     }
 
     @Test
-    fun `adding to a stopped queue after its current track was removed makes the new track current without playing it`() = runTest {
+    fun `adding to a queue stopped by removing its last track inserts after the current track as usual`() = runTest {
         val queue = queueOf()
         queue.replace(tracks, startIndex = 2)
         queue.remove(2)
 
         queue.playNext(track(9))
+        queue.addToEnd(track(8))
 
-        assertEquals(listOf(1L, 2L, 9L), ids(queue))
-        assertEquals(9L, queue.queue.value.current?.id)
+        assertEquals(listOf(1L, 2L, 9L, 8L), ids(queue))
+        assertEquals(2L, queue.queue.value.current?.id)
         assertFalse(queue.isPlaying.value)
-
-        queue.play()
-        assertTrue(queue.isPlaying.value)
-        assertEquals("content://media/audio/9", engine.loaded.last())
-
-        val other = queueOf()
-        other.replace(tracks, startIndex = 2)
-        other.remove(2)
-        other.addToEnd(track(8))
-        assertEquals(8L, other.queue.value.current?.id)
     }
 
     @Test
@@ -436,7 +431,31 @@ class QueueTest {
         queue.remove(0)
 
         assertEquals(listOf(2L), ids(queue))
-        assertNull(queue.queue.value.current)
+        assertEquals(2L, queue.queue.value.current?.id)
         assertFalse(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `removing the current track while the next one is still buffering keeps playback requested`() = runTest {
+        engine.startsImmediately = false
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1) // play asked for, engine not yet reporting isPlaying
+
+        queue.remove(1)
+
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertTrue(engine.playRequested)
+    }
+
+    @Test
+    fun `removing the current track after an outside pause keeps it paused`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+        engine.pause() // e.g. the notification's pause button
+
+        queue.remove(1)
+
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertFalse(engine.playRequested)
     }
 }
