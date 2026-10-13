@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
@@ -34,7 +35,8 @@ class ThemeStoreTest {
         val (first, firstScope) = openStore()
         first.setMode(ThemeMode.Dark)
         first.setAccent(AccentPalette[3])
-        firstScope.cancel()
+        // Join, not just cancel: DataStore frees the file only once its scope has completed, and a second store would throw.
+        firstScope.coroutineContext[Job]!!.cancelAndJoin()
 
         val (second, secondScope) = openStore()
         assertEquals(Theme(ThemeMode.Dark, AccentPalette[3]), second.theme.first())
