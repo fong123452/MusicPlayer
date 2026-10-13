@@ -161,6 +161,11 @@ private fun QueueList(
     // The move is committed on drop, so the row being dragged keeps its place in the list (and its gesture) until then.
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
+    // A queue change from elsewhere can drop the dragged row mid-gesture without a cancel callback.
+    LaunchedEffect(queueState.tracks) {
+        draggingIndex = null
+        dragOffset = 0f
+    }
     val lastIndex by rememberUpdatedState(queueState.tracks.lastIndex)
     val move by rememberUpdatedState(onMove)
     LazyColumn(modifier.fillMaxWidth().testTag(QUEUE_LIST_TAG), state = listState) {

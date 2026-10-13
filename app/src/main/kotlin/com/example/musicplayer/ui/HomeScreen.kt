@@ -49,6 +49,8 @@ fun HomeScreen(
     val openArtist = snapshot.artists.firstOrNull { it.key == openArtistKey }
     LaunchedEffect(snapshot) { if (snapshot.loaded && openArtist == null) openArtistKey = null }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
+    // With nothing current, Now Playing is hidden; clear the flag so it does not reappear when a Track is queued later.
+    LaunchedEffect(queueState.current == null) { if (queueState.current == null) showNowPlaying = false }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {
         // Each message gets its own coroutine, so a new failure replaces the one on screen instead of queueing behind it.

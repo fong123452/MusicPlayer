@@ -309,7 +309,8 @@ class QueueTest {
         assertEquals(listOf(4L, 1L, 3L, 2L), ids(queue))
         assertEquals(2L, queue.queue.value.current?.id)
 
-        queue.move(from = 0, to = 2) // crossing the current track from before to after... current stays
+        queue.move(from = 0, to = 2) // crossing the current track from before to after: current stays
+        assertEquals(listOf(1L, 3L, 4L, 2L), ids(queue))
         assertEquals(2L, queue.queue.value.current?.id)
         assertEquals(1, engine.loaded.size)
     }
@@ -408,5 +409,34 @@ class QueueTest {
         other.remove(2)
         other.addToEnd(track(8))
         assertEquals(8L, other.queue.value.current?.id)
+    }
+
+    @Test
+    fun `removing the current track while paused moves to the next track without starting playback`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 1)
+        queue.pause()
+
+        queue.remove(1)
+
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertEquals("content://media/audio/3", engine.loaded.last())
+        assertFalse(queue.isPlaying.value)
+
+        queue.play()
+        assertTrue(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `removing a track from a stopped queue keeps it stopped`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        queue.remove(2)
+
+        queue.remove(0)
+
+        assertEquals(listOf(2L), ids(queue))
+        assertNull(queue.queue.value.current)
+        assertFalse(queue.isPlaying.value)
     }
 }

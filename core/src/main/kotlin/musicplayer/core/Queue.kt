@@ -134,8 +134,9 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
                 stopPlayback()
             }
             else -> {
+                val wasPlaying = engine.isPlaying.value
                 state.value = QueueState(tracks, index)
-                loadCurrentAndPlay()
+                if (wasPlaying) loadCurrentAndPlay() else loadCurrentPaused()
             }
         }
     }
@@ -149,6 +150,12 @@ class Queue(private val engine: PlaybackEngine, scope: CoroutineScope) {
         val failed = state.value.current ?: return
         skippedEvents.tryEmit(failed.title)
         next()
+    }
+
+    private fun loadCurrentPaused() {
+        val track = state.value.current ?: return
+        ranOut = false
+        engine.load(track)
     }
 
     private fun loadCurrentAndPlay() {
