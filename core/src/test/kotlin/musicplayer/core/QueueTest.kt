@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,7 +17,8 @@ import kotlin.test.assertTrue
 class QueueTest {
     private val engine = FakePlaybackEngine()
 
-    private fun TestScope.queueOf() = Queue(engine, CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+    private fun TestScope.queueOf(seed: Int = 1) =
+        Queue(engine, CoroutineScope(UnconfinedTestDispatcher(testScheduler)), Random(seed))
 
     private fun track(id: Long) = Track(id, "content://media/audio/$id", "T$id", "A", "B", null, null, null, null, 180_000)
     private val tracks = (1L..3L).map(::track)
@@ -470,5 +472,148 @@ class QueueTest {
 
         assertEquals(3L, queue.queue.value.current?.id)
         assertTrue(engine.playRequested)
+    }
+
+    private val ten = (1L..10L).map(::track)
+
+    @Test
+    fun `shuffle on keeps the current track first and shuffles the rest, without reloading`() = runTest {
+        val queue = queueOf()
+        queue.replace(ten, startIndex = 4)
+
+        queue.setShuffle(true)
+
+        assertTrue(queue.shuffle.value)
+        assertEquals(5L, queue.queue.value.current?.id)
+        assertEquals(0, queue.queue.value.currentIndex)
+        assertEquals(ten.map { it.id }.toSet(), ids(queue).toSet())
+        assertEquals(10, ids(queue).size)
+        assertTrue(ids(queue).drop(1) != ten.map { it.id }.filter { it != 5L })
+        assertEquals(1, engine.loaded.size)
+    }
+
+    @Test
+    fun `shuffle off restores the original order and stays on the current track`() = runTest {
+        val queue = queueOf()
+        queue.replace(ten, startIndex = 4)
+        queue.setShuffle(true)
+        queue.next()
+        val playing = queue.queue.value.current?.id
+
+        queue.setShuffle(false)
+
+        assertEquals((1L..10L).toList(), ids(queue))
+        assertEquals(playing, queue.queue.value.current?.id)
+        assertEquals(playing, queue.queue.value.currentIndex + 1L)
+    }
+
+    @Test
+    fun `tracks added while shuffled keep their place after shuffle is turned off`() = runTest {
+        val queue = queueOf()
+        queue.replace(ten, startIndex = 2)
+        queue.setShuffle(true)
+        queue.next() // moves to some other track
+        val playing = queue.queue.value.current!!.id
+
+        queue.playNext(track(90))
+        queue.addToEnd(track(91))
+        assertEquals(90L, queue.queue.value.tracks[queue.queue.value.currentIndex + 1].id)
+        assertEquals(91L, ids(queue).last())
+        queue.setShuffle(false)
+
+        val expected = (1L..10L).toMutableList().apply { add(indexOf(playing).toInt() + 1, 90L); add(91L) }
+        assertEquals(expected, ids(queue))
+    }
+
+    @Test
+    fun `removing while shuffled also removes from the original order`() = runTest {
+        val queue = queueOf()
+        queue.replace(ten, startIndex = 0)
+        queue.setShuffle(true)
+        val victim = queue.queue.value.tracks.last().id
+        queue.remove(queue.queue.value.tracks.lastIndex)
+
+        queue.setShuffle(false)
+
+        assertEquals((1L..10L).filter { it != victim }, ids(queue))
+    }
+
+    @Test
+    fun `playing a new list while shuffle is on shuffles it with the chosen track first`() = runTest {
+        val queue = queueOf()
+        queue.setShuffle(true)
+
+        queue.replace(ten, startIndex = 6)
+
+        assertEquals(7L, queue.queue.value.current?.id)
+        assertEquals(0, queue.queue.value.currentIndex)
+        assertEquals(10, ids(queue).toSet().size)
+    }
+
+    @Test
+    fun `cycleRepeat goes Off to All to One and back to Off`() = runTest {
+        val queue = queueOf()
+        assertEquals(RepeatMode.Off, queue.repeat.value)
+
+        queue.cycleRepeat()
+        assertEquals(RepeatMode.All, queue.repeat.value)
+        queue.cycleRepeat()
+        assertEquals(RepeatMode.One, queue.repeat.value)
+        queue.cycleRepeat()
+        assertEquals(RepeatMode.Off, queue.repeat.value)
+    }
+
+    @Test
+    fun `repeat one reloads the same track when it finishes on its own, but next still advances`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+        queue.cycleRepeat(); queue.cycleRepeat()
+
+        engine.complete()
+
+        assertEquals(1L, queue.queue.value.current?.id)
+        assertEquals(2, engine.loaded.size)
+        assertTrue(queue.isPlaying.value)
+
+        queue.next()
+        assertEquals(2L, queue.queue.value.current?.id)
+    }
+
+    @Test
+    fun `repeat all wraps from the last track to the first`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+        queue.cycleRepeat()
+
+        engine.complete()
+
+        assertEquals(1L, queue.queue.value.current?.id)
+        assertTrue(queue.isPlaying.value)
+
+        queue.replace(tracks, startIndex = 2)
+        queue.next()
+        assertEquals(1L, queue.queue.value.current?.id)
+    }
+
+    @Test
+    fun `repeat off stops at the end`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 2)
+
+        engine.complete()
+
+        assertEquals(3L, queue.queue.value.current?.id)
+        assertFalse(queue.isPlaying.value)
+    }
+
+    @Test
+    fun `repeat all does not loop forever when every track fails`() = runTest {
+        val queue = queueOf()
+        queue.replace(tracks, startIndex = 0)
+        queue.cycleRepeat()
+
+        repeat(3) { engine.fail() }
+
+        assertFalse(queue.isPlaying.value)
     }
 }
