@@ -1,6 +1,7 @@
 # 10: Edit Playlists and drop deleted Tracks
 
 Status: ready-for-agent
+Closed: 2026-10-13
 Blocked by: 09
 
 **What to build:** On a **Playlist**'s page, the user can drag to reorder Tracks, remove Tracks, rename the Playlist and delete it. When the **Library** refreshes and a Track has left it (the file was deleted from the phone), that Track is removed from every Playlist.
@@ -21,3 +22,5 @@ Blocked by: 09
   - Q4 `HomeScreen` open-detail state: leave as is.
 - Instrumented tests (`PlaylistsTabTest` additions, the `ReorderableList` extraction behind `QueueEditingTest`/`NowPlayingTest`) compile but were not run: no emulator or device was available. QA in a running app is outstanding.
 - Not covered by an automated test: the Hilt wiring of `pruneOnRefresh`, and the drag gesture itself.
+
+Closed: merged in https://github.com/fong123452/MusicPlayer/pull/14.
