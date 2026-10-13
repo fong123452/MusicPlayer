@@ -1,6 +1,12 @@
 package com.example.musicplayer.ui
 
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
@@ -33,7 +39,7 @@ class PlaylistsTabTest {
     @Before
     fun setUp() {
         hilt.inject()
-        source.tracks = listOf(rawTrack(1, title = "Alpha"), rawTrack(2, title = "Beta"))
+        source.tracks = listOf(rawTrack(1, title = "Alpha"), rawTrack(2, title = "Beta"), rawTrack(3, title = "Gamma"))
         scenario = ActivityScenario.launch(MainActivity::class.java)
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Alpha").fetchSemanticsNodes().isNotEmpty() }
     }
@@ -116,5 +122,55 @@ class PlaylistsTabTest {
         compose.onNodeWithContentDescription(BACK_DESCRIPTION).performClick()
 
         compose.waitUntil(5_000) { compose.onAllNodesWithText("0 songs").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun add_songs_lists_the_whole_library_and_searches_it() {
+        openNewPlaylist("Mix")
+
+        compose.onNodeWithText(ADD_SONGS_LABEL).performClick()
+
+        compose.onNodeWithTag(ADD_SONGS_LIST_TAG).assertExists()
+        compose.onNodeWithText("Beta").assertExists()
+        compose.onNodeWithText("Gamma").assertExists()
+        compose.onNodeWithTag(ADD_SONGS_SEARCH_TAG).performTextInput("gam")
+        compose.onNodeWithText("Beta").assertDoesNotExist()
+        compose.onNodeWithText("Gamma").assertExists()
+    }
+
+    @Test
+    fun tracks_already_in_the_playlist_are_ticked_and_cannot_be_unticked() {
+        openNewPlaylist("Mix")
+        compose.onNodeWithText(ADD_SONGS_LABEL).performClick()
+
+        val alpha = compose.onNode(isToggleable() and hasText("Alpha"))
+        alpha.assertIsOn().assertIsNotEnabled()
+        alpha.performClick()
+        alpha.assertIsOn()
+        compose.onNode(isToggleable() and hasText("Beta")).assertIsOff().assertIsEnabled()
+    }
+
+    @Test
+    fun done_adds_the_ticked_tracks_to_the_playlist_page_and_the_tab_count() {
+        openNewPlaylist("Mix")
+        compose.onNodeWithText(ADD_SONGS_LABEL).performClick()
+
+        compose.onNodeWithText("Gamma").performClick()
+        compose.onNodeWithText("Beta").performClick()
+        compose.onNodeWithText(DONE_LABEL).performClick()
+
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("3 songs").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription(BACK_DESCRIPTION).performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("3 songs").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun done_with_nothing_ticked_changes_nothing() {
+        openNewPlaylist("Mix")
+        compose.onNodeWithText(ADD_SONGS_LABEL).performClick()
+
+        compose.onNodeWithText(DONE_LABEL).performClick()
+
+        compose.onNodeWithText("1 song").assertExists()
     }
 }
