@@ -46,16 +46,16 @@ class Library(private val source: TrackSource) {
         tracks.groupBy(::albumKey).map { (key, members) ->
             val sorted = members.sortedWith(byDiscAndTrack)
             Album(
-                id = key,
+                key = key,
                 title = sorted.first().album,
-                artist = sorted.firstNotNullOfOrNull { it.albumArtist } ?: creditFor(sorted),
+                albumArtist = sorted.firstNotNullOfOrNull { it.albumArtist } ?: creditFor(sorted),
                 albumId = sorted.firstNotNullOfOrNull { it.albumId },
                 tracks = sorted,
             )
-        }.sortedWith(compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.id })
+        }.sortedWith(compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.key })
 
     private fun albumKey(track: Track): String = when {
-        track.albumArtist != null -> "artist:${track.album.lowercase()}|${track.albumArtist.lowercase()}"
+        track.albumArtist != null -> "artist:${track.album.lowercase()}\u0000${track.albumArtist.lowercase()}"
         track.albumId != null -> "id:${track.albumId}"
         else -> "title:${track.album.lowercase()}"
     }

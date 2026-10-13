@@ -32,7 +32,7 @@ const val PLAY_ALBUM_LABEL = "Play album"
 @Composable
 fun AlbumsScreen(albums: List<Album>, onAlbumClick: (Album) -> Unit, modifier: Modifier = Modifier) {
     LazyColumn(modifier.fillMaxSize().testTag(ALBUMS_LIST_TAG)) {
-        items(albums, key = { it.id }) { album ->
+        items(albums, key = { it.key }) { album ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -43,7 +43,7 @@ fun AlbumsScreen(albums: List<Album>, onAlbumClick: (Album) -> Unit, modifier: M
                 AlbumArt(album.albumId, 56.dp, ROW_ART_PLACEHOLDER_TAG)
                 Column(Modifier.padding(start = 12.dp)) {
                     Text(album.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                    Text(album.artist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    Text(album.albumArtist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
             }
         }
@@ -66,7 +66,7 @@ fun AlbumDetailScreen(
             AlbumArt(album.albumId, 96.dp, ROW_ART_PLACEHOLDER_TAG)
             Column(Modifier.padding(start = 16.dp)) {
                 Text(album.title, style = MaterialTheme.typography.titleLarge, maxLines = 2)
-                Text(album.artist, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                Text(album.albumArtist, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Button(onClick = { onPlay(0) }, Modifier.padding(top = 8.dp)) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Text(PLAY_ALBUM_LABEL)

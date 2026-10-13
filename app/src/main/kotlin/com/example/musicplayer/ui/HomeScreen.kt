@@ -42,7 +42,7 @@ fun HomeScreen(
     val isPlaying by player.isPlaying.collectAsState()
     var selected by rememberSaveable { mutableIntStateOf(0) }
     var openAlbumId by rememberSaveable { mutableStateOf<String?>(null) }
-    val openAlbum = snapshot.albums.firstOrNull { it.id == openAlbumId }
+    val openAlbum = snapshot.albums.firstOrNull { it.key == openAlbumId }
     var showNowPlaying by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(player) {
@@ -81,7 +81,7 @@ fun HomeScreen(
                             onTrackPlayed()
                         },
                     )
-                    HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.id })
+                    HomeTab.Albums -> AlbumsScreen(snapshot.albums, onAlbumClick = { openAlbumId = it.key })
                     else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Coming soon")
                     }

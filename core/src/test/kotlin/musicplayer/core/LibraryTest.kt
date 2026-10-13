@@ -138,7 +138,7 @@ class LibraryTest {
 
         val albums = library.snapshot.value.albums
         assertEquals(2, albums.size)
-        val compilation = albums.single { it.artist == "Various Artists" }
+        val compilation = albums.single { it.albumArtist == "Various Artists" }
         assertEquals("Hits", compilation.title)
         assertEquals(setOf(1L, 2L), compilation.tracks.map { it.id }.toSet())
     }
@@ -188,8 +188,8 @@ class LibraryTest {
         )
 
         val byTitle = library.snapshot.value.albums.associateBy { it.title }
-        assertEquals("Solo", byTitle.getValue("One").artist)
-        assertEquals("Various Artists", byTitle.getValue("Mix").artist)
+        assertEquals("Solo", byTitle.getValue("One").albumArtist)
+        assertEquals("Various Artists", byTitle.getValue("Mix").albumArtist)
     }
 
     @Test
@@ -199,7 +199,7 @@ class LibraryTest {
             rawTrack(2, artist = "Guest Two", album = "Record", albumArtist = "The Band"),
         )
 
-        assertEquals("The Band", library.snapshot.value.albums.single().artist)
+        assertEquals("The Band", library.snapshot.value.albums.single().albumArtist)
     }
 
     @Test
