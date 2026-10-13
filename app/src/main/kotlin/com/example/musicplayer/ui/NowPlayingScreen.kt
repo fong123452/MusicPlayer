@@ -213,7 +213,7 @@ private fun QueueList(
                                     val rowHeight = listState.layoutInfo.visibleItemsInfo
                                         .firstOrNull { it.index == from }?.size
                                     if (from != null && rowHeight != null && rowHeight > 0) {
-                                        move(from, (from + (dragOffset / rowHeight).roundToInt()).coerceIn(0, lastIndex))
+                                        move(from, dragTargetIndex(from, dragOffset, rowHeight, lastIndex))
                                     }
                                     draggingIndex = null
                                     dragOffset = 0f
@@ -229,6 +229,10 @@ private fun QueueList(
         }
     }
 }
+
+/** The row a dragged row lands on after moving [offsetPx] vertically, clamped to the Queue. */
+internal fun dragTargetIndex(from: Int, offsetPx: Float, rowHeightPx: Int, lastIndex: Int): Int =
+    (from + (offsetPx / rowHeightPx).roundToInt()).coerceIn(0, lastIndex)
 
 internal fun formatTime(ms: Long): String {
     val totalSeconds = ms / 1000
