@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import musicplayer.core.AddResult
@@ -21,8 +23,13 @@ class PlaylistsViewModel @Inject constructor(
     private val core: Playlists,
     private val queue: Queue,
 ) : ViewModel() {
+    private val loadedState = MutableStateFlow(false)
+
+    /** False until the store has delivered the Playlists once, so an empty list is not mistaken for "none". */
+    val loaded: StateFlow<Boolean> = loadedState
+
     val playlists: StateFlow<List<Playlist>> =
-        core.playlists.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        core.playlists.onEach { loadedState.value = true }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val messageEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
 
@@ -43,6 +50,22 @@ class PlaylistsViewModel @Inject constructor(
 
     fun add(playlist: Playlist, tracks: List<Track>) {
         viewModelScope.launch { messageEvents.emit(core.add(playlist.id, tracks).describe(playlist.name)) }
+    }
+
+    fun rename(playlist: Playlist, name: String) {
+        viewModelScope.launch { core.rename(playlist.id, name) }
+    }
+
+    fun delete(playlist: Playlist) {
+        viewModelScope.launch { core.delete(playlist.id) }
+    }
+
+    fun remove(playlist: Playlist, track: Track) {
+        viewModelScope.launch { core.remove(playlist.id, track) }
+    }
+
+    fun move(playlist: Playlist, from: Int, to: Int) {
+        viewModelScope.launch { core.move(playlist.id, from, to) }
     }
 
     /** Returns false, playing nothing, when the Playlist has no Tracks. */

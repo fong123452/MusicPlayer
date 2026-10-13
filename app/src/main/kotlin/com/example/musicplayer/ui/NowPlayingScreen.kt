@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -26,20 +22,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import musicplayer.core.QueueState
 import musicplayer.core.RepeatMode
@@ -178,75 +169,27 @@ private fun QueueList(
     onRemove: (index: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
-    // The move is committed on drop, so the row being dragged keeps its place in the list (and its gesture) until then.
-    var draggingIndex by remember { mutableStateOf<Int?>(null) }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    // A queue change from elsewhere can drop the dragged row mid-gesture without a cancel callback.
-    LaunchedEffect(queueState.tracks) {
-        draggingIndex = null
-        dragOffset = 0f
-    }
-    val lastIndex by rememberUpdatedState(queueState.tracks.lastIndex)
-    val move by rememberUpdatedState(onMove)
-    LazyColumn(modifier.fillMaxWidth().testTag(QUEUE_LIST_TAG), state = listState) {
-        itemsIndexed(queueState.tracks, key = { index, track -> "$index-${track.id}" }) { index, track ->
-            val isCurrent = index == queueState.currentIndex
-            val isDragging = draggingIndex == index
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .zIndex(if (isDragging) 1f else 0f)
-                    .graphicsLayer { translationY = if (isDragging) dragOffset else 0f }
-                    .padding(start = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
-                    Text(
-                        track.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                        maxLines = 1,
-                    )
-                    Text(track.artist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                }
-                IconButton(onClick = { onRemove(index) }) {
-                    Icon(Icons.Filled.Close, contentDescription = REMOVE_FROM_QUEUE_DESCRIPTION)
-                }
-                val currentIndex by rememberUpdatedState(index)
-                Icon(
-                    Icons.Filled.Menu,
-                    contentDescription = REORDER_DESCRIPTION,
-                    modifier = Modifier
-                        .padding(end = 16.dp)
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    draggingIndex = currentIndex
-                                    dragOffset = 0f
-                                },
-                                onDrag = { change, delta ->
-                                    change.consume()
-                                    dragOffset += delta.y
-                                },
-                                onDragEnd = {
-                                    val from = draggingIndex
-                                    val rowHeight = listState.layoutInfo.visibleItemsInfo
-                                        .firstOrNull { it.index == from }?.size
-                                    if (from != null && rowHeight != null && rowHeight > 0) {
-                                        move(from, dragTargetIndex(from, dragOffset, rowHeight, lastIndex))
-                                    }
-                                    draggingIndex = null
-                                    dragOffset = 0f
-                                },
-                                onDragCancel = {
-                                    draggingIndex = null
-                                    dragOffset = 0f
-                                },
-                            )
-                        },
+    ReorderableList(
+        items = queueState.tracks,
+        key = { index, track -> "$index-${track.id}" },
+        onMove = onMove,
+        modifier = modifier.testTag(QUEUE_LIST_TAG),
+    ) { index, track, handle ->
+        val isCurrent = index == queueState.currentIndex
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                Text(
+                    track.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
                 )
+                Text(track.artist, style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
+            IconButton(onClick = { onRemove(index) }) {
+                Icon(Icons.Filled.Close, contentDescription = REMOVE_FROM_QUEUE_DESCRIPTION)
+            }
+            Icon(Icons.Filled.Menu, contentDescription = REORDER_DESCRIPTION, modifier = handle.padding(end = 16.dp))
         }
     }
 }
