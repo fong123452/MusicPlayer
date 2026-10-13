@@ -220,4 +220,26 @@ class QueueTest {
         assertEquals(listOf(3L, 2L, 1L), queue.queue.value.tracks.map { it.id })
         assertEquals(2L, queue.queue.value.current?.id)
     }
+
+    @Test
+    fun `playing an Artist replaces the queue with that Artist's tracks, including compilation tracks`() = runTest {
+        val library = Library(
+            FakeTrackSource(
+                listOf(
+                    rawTrack(1, title = "B", artist = "Alice", album = "Solo", albumArtist = "Alice"),
+                    rawTrack(2, title = "A", artist = "Alice", album = "Hits", albumArtist = "Various Artists"),
+                    rawTrack(3, title = "C", artist = "Bob", album = "Hits", albumArtist = "Various Artists"),
+                ),
+            ),
+        )
+        library.refresh()
+        val queue = queueOf()
+        queue.replace(listOf(track(7)), startIndex = 0)
+        val alice = library.snapshot.value.artists.single { it.name == "Alice" }
+
+        queue.replace(alice.tracks, startIndex = 1)
+
+        assertEquals(listOf(2L, 1L), queue.queue.value.tracks.map { it.id })
+        assertEquals(1L, queue.queue.value.current?.id)
+    }
 }

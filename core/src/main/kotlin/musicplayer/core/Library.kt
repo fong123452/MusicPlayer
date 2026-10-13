@@ -7,12 +7,13 @@ import kotlinx.coroutines.flow.StateFlow
 data class LibrarySnapshot(
     val tracks: List<Track>,
     val albums: List<Album> = emptyList(),
+    val artists: List<Artist> = emptyList(),
     /** False until the first refresh has completed. */
     val loaded: Boolean,
 )
 
 class Library(private val source: TrackSource) {
-    private val state = MutableStateFlow(LibrarySnapshot(emptyList(), emptyList(), loaded = false))
+    private val state = MutableStateFlow(LibrarySnapshot(emptyList(), emptyList(), emptyList(), loaded = false))
     val snapshot: StateFlow<LibrarySnapshot> = state
 
     /** Rescans the device. Returns false, keeping the previous snapshot, if the scan failed. */
@@ -25,7 +26,8 @@ class Library(private val source: TrackSource) {
             return false
         }
         val tracks = raw.map(::toTrack).sortedWith(byTitle)
-        state.value = LibrarySnapshot(tracks, groupIntoAlbums(tracks), loaded = true)
+        val albums = groupIntoAlbums(tracks)
+        state.value = LibrarySnapshot(tracks, albums, groupIntoArtists(tracks, albums), loaded = true)
         return true
     }
 
@@ -53,6 +55,21 @@ class Library(private val source: TrackSource) {
                 tracks = sorted,
             )
         }.sortedWith(compareBy<Album, String>(String.CASE_INSENSITIVE_ORDER) { it.title }.thenBy { it.key })
+
+    private fun groupIntoArtists(tracks: List<Track>, albums: List<Album>): List<Artist> {
+        val tracksByArtist = tracks.groupBy { it.artist.lowercase() }
+        val albumsByArtist = albums.groupBy { it.albumArtist.lowercase() }
+        return (tracksByArtist.keys + albumsByArtist.keys).map { key ->
+            val ownTracks = tracksByArtist[key].orEmpty()
+            val ownAlbums = albumsByArtist[key].orEmpty()
+            Artist(
+                key = key,
+                name = ownTracks.minOfOrNull { it.artist } ?: ownAlbums.minOf { it.albumArtist },
+                albums = ownAlbums,
+                tracks = ownTracks,
+            )
+        }.sortedWith(compareBy<Artist, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.key })
+    }
 
     private fun albumKey(track: Track): String = when {
         track.albumArtist != null -> "artist:${track.album.lowercase()}\u0000${track.albumArtist.lowercase()}"

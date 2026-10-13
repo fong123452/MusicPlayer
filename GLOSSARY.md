@@ -24,7 +24,7 @@ _Avoid_: Record, release
 The artist an Album is credited to as a whole. For a compilation, this is often "Various Artists", even though each Track has its own Artist.
 
 **Artist**:
-A group of Tracks that share the same artist tag.
+A name that Tracks are credited to (their artist tag) or that Albums are credited to (their Album Artist), ignoring case. An Artist can have Albums but no Tracks of their own.
 _Avoid_: Performer, band
 
 **Playlist**:
